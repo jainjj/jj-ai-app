@@ -10,6 +10,7 @@ import ssl
 import threading
 import time
 import urllib.parse
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://ollama.simple-chatbot-with-rag-system.svc:11434")
@@ -96,11 +97,37 @@ def cluster_snapshot():
 
 
 # ---------------------------------------------------------------- ollama
+_model = {"t": 0, "name": MODEL}
+
+
+def active_model():
+    """MODEL if Ollama has it, otherwise the first local model, so any cluster works."""
+    if time.time() - _model["t"] < 60:
+        return _model["name"]
+    try:
+        with urllib.request.urlopen(OLLAMA_URL + "/api/tags", timeout=5) as r:
+            models = json.load(r).get("models", [])
+    except Exception:
+        return _model["name"]
+    names = [m["name"] for m in models]
+    local = [m["name"] for m in models if not m.get("remote_host")]
+    if MODEL in names or f"{MODEL}:latest" in names:
+        name = MODEL
+    else:
+        name = (local or names or [MODEL])[0]
+        if name != _model["name"]:
+            print(f"model {MODEL} not in Ollama, using {name}", flush=True)
+    _model.update(t=time.time(), name=name)
+    return name
+
+
 def ollama_stream(messages):
     u = urllib.parse.urlparse(OLLAMA_URL)
     conn = http.client.HTTPConnection(u.hostname, u.port or 80, timeout=600)
+    model = active_model()
     body = json.dumps({
-        "model": MODEL, "messages": messages, "stream": True, "think": "low",
+        # gpt-oss can't switch reasoning off, only down; other models (qwen3...) can.
+        "model": model, "messages": messages, "stream": True, "think": "low" if "gpt-oss" in model else False,
         "keep_alive": "30m", "options": {"num_predict": 900, "temperature": 0.9},
     })
     conn.request("POST", "/api/chat", body=body, headers={"Content-Type": "application/json"})
@@ -137,7 +164,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/info":
             return self._json(200, {
                 "pod": socket.gethostname(), "node": os.environ.get("NODE_NAME", "?"),
-                "namespace": os.environ.get("POD_NAMESPACE", "?"), "model": MODEL,
+                "namespace": os.environ.get("POD_NAMESPACE", "?"), "model": active_model(),
             })
         if path == "/api/cluster":
             try:

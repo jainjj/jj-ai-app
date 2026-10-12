@@ -22,7 +22,7 @@ rancher/gitrepo.yaml   registers this repo with Fleet
 ## Requirements on each target cluster
 
 - An Ollama service. The default is SUSE AI's
-  `ollama.simple-chatbot-with-rag-system.svc.cluster.local:11434` with model `gpt-oss:latest`.
+  `ollama.simple-chatbot-with-rag-system.svc.cluster.local:11434` with at least one model pulled.
 - An ingress controller with a default IngressClass (k3s ships Traefik).
 
 ## Deploy with Fleet
@@ -40,6 +40,7 @@ rancher/gitrepo.yaml   registers this repo with Fleet
    |---|---|
    | `jj-ai=enabled` | deploys the app |
    | `jj-ai/host=jj-ai.<ingress-ip>.sslip.io` | sets the Ingress hostname. Without it the Ingress matches any host, so `http://<ingress-ip>/` works |
+   | `jj-ai/model=<name>` | preferred Ollama model, e.g. `qwen3`. If Ollama doesn't have it, the app uses the first local model it finds |
 
 Fleet installs it into the `jj-ai` namespace as Helm release `jj-ai`. To change the app,
 edit `files/` and push, and Fleet rolls it out to every labelled cluster.
@@ -51,7 +52,7 @@ Override any of these under `helm.values` in `fleet.yaml`:
 | Value | Default |
 |---|---|
 | `ollama.url` | `http://ollama.simple-chatbot-with-rag-system.svc.cluster.local:11434` |
-| `ollama.model` | `gpt-oss:latest` |
+| `ollama.model` | from the `jj-ai/model` label, else `gpt-oss:latest`; falls back to the first local model Ollama has |
 | `maxConcurrent` | `2` simultaneous model calls |
 | `ingress.host` / `ingress.className` | from the `jj-ai/host` label / cluster default |
 
