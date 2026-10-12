@@ -1,0 +1,4 @@
+# Never commit cluster credentials.
+*kubeconfig*
+cluster-*.yaml
+.DS_Store

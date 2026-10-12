@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jj-ai · Geeko's Cluster Arcade</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦎</text></svg>">
+<style>
+  :root {
+    --jungle: #30ba78; --pine: #0c322c; --mint: #90ebcd; --persimmon: #fe7c3f; --blue: #2453ff;
+    --bg: #06120f; --panel: #0c1f1b; --line: #1d3d35; --text: #e6f5ee; --muted: #8fb3a6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--text); background: var(--bg);
+    font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background-image:
+      radial-gradient(ellipse at 15% -10%, #30ba7833 0, transparent 55%),
+      radial-gradient(ellipse at 110% 10%, #2453ff22 0, transparent 50%),
+      linear-gradient(#ffffff06 1px, transparent 1px), linear-gradient(90deg, #ffffff06 1px, transparent 1px);
+    background-size: auto, auto, 32px 32px, 32px 32px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 28px 16px 60px; }
+  header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .geeko { font-size: 54px; filter: drop-shadow(0 0 18px #30ba7888); animation: bob 3s ease-in-out infinite; cursor: pointer; user-select: none; }
+  @keyframes bob { 50% { transform: translateY(-6px) rotate(-4deg); } }
+  h1 { margin: 0; font-size: clamp(28px, 6vw, 44px); letter-spacing: -1px; line-height: 1.05;
+       background: linear-gradient(90deg, var(--mint), var(--jungle), var(--blue), var(--persimmon), var(--mint));
+       background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+       animation: shift 8s linear infinite; }
+  @keyframes shift { to { background-position: 300% 0; } }
+  .sub { color: var(--muted); margin: 2px 0 0; }
+  .sub code { color: var(--mint); }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 22px 0; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+  .stat b { display: block; font-size: 22px; color: var(--mint); font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+
+  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .mode { text-align: left; color: var(--text); background: var(--panel); border: 1px solid var(--line);
+          border-radius: 14px; padding: 12px 14px; cursor: pointer; font: inherit; transition: .15s; }
+  .mode:hover { border-color: var(--jungle); transform: translateY(-2px); }
+  .mode.on { border-color: var(--jungle); background: linear-gradient(160deg, #30ba7833, var(--panel)); box-shadow: 0 0 0 1px var(--jungle), 0 8px 30px #30ba7822; }
+  .mode .e { font-size: 24px; }
+  .mode .t { display: block; font-weight: 650; margin-top: 4px; }
+  .mode .d { display: block; color: var(--muted); font-size: 12.5px; }
+
+  .composer { margin-top: 16px; display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; }
+  textarea { flex: 1 1 400px; min-height: 92px; resize: vertical; color: var(--text); background: #081714;
+             border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  textarea:focus { outline: 2px solid var(--jungle); border-color: transparent; }
+  textarea[hidden] { display: none; }
+  .go { flex: 0 0 auto; min-width: 150px; border: 0; border-radius: 14px; cursor: pointer; font: 700 16px/1 inherit;
+        color: var(--pine); background: linear-gradient(135deg, var(--mint), var(--jungle)); padding: 0 22px; min-height: 52px;
+        box-shadow: 0 6px 24px #30ba7855; transition: .15s; }
+  .go:hover { transform: translateY(-1px) scale(1.02); }
+  .go:disabled { filter: grayscale(.7); cursor: progress; transform: none; }
+
+  .out { margin-top: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; min-height: 120px; position: relative; }
+  .out.empty { color: var(--muted); display: grid; place-items: center; text-align: center; }
+  .think { font: 12px/1.4 ui-monospace, Menlo, monospace; color: #6f9488; border-left: 2px solid var(--line);
+           padding-left: 10px; margin-bottom: 12px; max-height: 4.2em; overflow: hidden; white-space: pre-wrap;
+           mask-image: linear-gradient(transparent, #000 40%); -webkit-mask-image: linear-gradient(transparent, #000 40%); }
+  .think::before { content: "🧠 thinking… "; color: var(--jungle); }
+  .answer { white-space: pre-wrap; word-wrap: break-word; }
+  .answer strong { color: var(--mint); }
+  .answer code { background: #ffffff10; padding: 1px 5px; border-radius: 5px; font-size: 13px; }
+  .answer h3 { margin: 10px 0 4px; font-size: 16px; color: var(--jungle); }
+  .caret { display: inline-block; width: 8px; height: 1.1em; background: var(--jungle); vertical-align: text-bottom; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .meta { margin-top: 12px; color: var(--muted); font-size: 12px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .err { color: var(--persimmon); }
+  .blocked { border: 1px solid var(--persimmon); background: linear-gradient(160deg, #fe7c3f22, transparent); border-radius: 12px; padding: 14px 16px; white-space: normal; }
+  .blocked b { display: block; font-size: 18px; color: var(--persimmon); margin-bottom: 4px; }
+  .blocked small { color: var(--muted); }
+  .dots::after { content: ""; animation: dots 1.2s steps(4) infinite; }
+  @keyframes dots { 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+  footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: center; }
+  footer code { color: var(--mint); }
+  .confetti { position: fixed; top: -20px; font-size: 22px; pointer-events: none; animation: fall linear forwards; z-index: 9; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+  @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="geeko" id="geeko" title="poke me">🦎</div>
+    <div>
+      <h1>jj-ai · Geeko's Cluster Arcade</h1>
+      <p class="sub">Powered by <code>SUSE AI</code> · Ollama running <code id="model">…</code> inside your own cluster. No data leaves the building.</p>
+    </div>
+  </header>
+
+  <section class="stats" id="stats">
+    <div class="stat"><b id="s-nodes">–</b><span>nodes</span></div>
+    <div class="stat"><b id="s-pods">–</b><span>pods</span></div>
+    <div class="stat"><b id="s-ns">–</b><span>namespaces</span></div>
+    <div class="stat"><b id="s-img">–</b><span>images</span></div>
+    <div class="stat"><b id="s-gpu">–</b><span>GPUs</span></div>
+    <div class="stat"><b id="s-pod" style="font-size:13px;word-break:break-all">–</b><span>served by pod</span></div>
+  </section>
+
+  <section class="modes" id="modes"></section>
+
+  <div class="composer">
+    <textarea id="input" placeholder=""></textarea>
+    <button class="go" id="go">Unleash Geeko 🚀</button>
+  </div>
+
+  <section class="out empty" id="out">Pick a game above and hit the button. Running a 20B model on CPU, so give Geeko a moment to warm up ☕</section>
+
+  <footer>Deployed as <code>jj-ai</code> on cluster-2 · SUSE Rancher Prime · NeuVector-guarded · 100% open source vibes</footer>
+</div>
+
+<script>
+const MODES = [
+  { id: "roast",   e: "🔥", t: "Roast My Cluster", d: "Live snapshot, zero mercy", input: false },
+  { id: "fortune", e: "🔮", t: "Cluster Fortune",  d: "What does fate hold for your pods?", input: false },
+  { id: "yaml",    e: "🧾", t: "YAML Roaster",     d: "Paste a manifest, get judged", input: true,
+    ph: "apiVersion: apps/v1\nkind: Deployment\n# paste the YAML you're secretly ashamed of…" },
+  { id: "haiku",   e: "🌸", t: "Pod Haiku",        d: "Poetry for your workloads", input: true, ph: "e.g. a pod stuck in CrashLoopBackOff at 3am" },
+  { id: "eli5",    e: "🧸", t: "Explain Like I'm 5", d: "K8s concepts, crayon edition", input: true, ph: "e.g. What is an Ingress?" },
+  { id: "chat",    e: "💬", t: "Ask Geeko",        d: "Anything goes", input: true, ph: "Ask the chameleon anything…" },
+];
+// Card-like number (13-19 digits, optional spaces/dashes) passing the Luhn check.
+// Only used to explain a dropped request; the actual blocking is done by NeuVector.
+const looksLikeCard = s => (s.match(/\b\d(?:[ -]?\d){12,18}\b/g) || []).some(m => {
+  const d = m.replace(/\D/g, ""); let sum = 0;
+  for (let i = 0; i < d.length; i++) { let n = +d[d.length - 1 - i]; if (i % 2) { n *= 2; if (n > 9) n -= 9; } sum += n; }
+  return sum % 10 === 0;
+});
+let mode = "roast";
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+const md = s => esc(s)
+  .replace(/^#{1,4} (.*)$/gm, "<h3>$1</h3>")
+  .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+  .replace(/`([^`\n]+)`/g, "<code>$1</code>");
+
+function renderModes() {
+  $("modes").innerHTML = MODES.map(m =>
+    `<button class="mode ${m.id === mode ? "on" : ""}" data-id="${m.id}">
+       <span class="e">${m.e}</span><span class="t">${m.t}</span><span class="d">${m.d}</span></button>`).join("");
+  const m = MODES.find(x => x.id === mode);
+  $("input").hidden = !m.input;
+  $("input").placeholder = m.ph || "";
+}
+$("modes").addEventListener("click", ev => {
+  const b = ev.target.closest(".mode"); if (!b) return;
+  mode = b.dataset.id; renderModes(); if (!$("input").hidden) $("input").focus();
+});
+
+async function loadStats() {
+  try {
+    const info = await (await fetch("/api/info")).json();
+    $("model").textContent = info.model; $("s-pod").textContent = info.pod;
+    const c = await (await fetch("/api/cluster")).json();
+    if (c.error) throw new Error(c.error);
+    $("s-nodes").textContent = c.nodes.length;
+    $("s-pods").textContent = c.pod_count;
+    $("s-ns").textContent = Object.keys(c.pods_per_namespace).length;
+    $("s-img").textContent = c.distinct_images;
+    $("s-gpu").textContent = c.nodes.reduce((a, n) => a + (+n.gpus || 0), 0);
+  } catch (e) { console.warn("stats", e); }
+}
+
+function confetti() {
+  for (let i = 0; i < 24; i++) {
+    const d = document.createElement("div");
+    d.className = "confetti"; d.textContent = ["🦎", "💚", "✨", "🚀", "☸️"][i % 5];
+    d.style.left = Math.random() * 100 + "vw"; d.style.animationDuration = 1.8 + Math.random() * 1.8 + "s";
+    document.body.appendChild(d); setTimeout(() => d.remove(), 4000);
+  }
+}
+$("geeko").onclick = confetti;
+
+$("go").onclick = async () => {
+  const m = MODES.find(x => x.id === mode);
+  const input = $("input").value;
+  if (m.input && !input.trim()) { $("input").focus(); return; }
+  const out = $("out"); out.className = "out";
+  out.innerHTML = `<div class="think" id="think" hidden></div><div class="answer" id="ans"><span class="dots">Waking up Geeko</span></div><div class="meta" id="meta"></div>`;
+  $("go").disabled = true; $("go").textContent = "Geeko is cooking…";
+  let answer = "", thinking = "", started = false;
+  try {
+    let res;
+    try {
+      res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, input }) });
+    } catch (e) { res = null; }
+    // NeuVector resets the connection, so Traefik answers 502 (or the fetch dies outright).
+    if ((!res || res.status === 502) && looksLikeCard(input)) {
+      $("ans").innerHTML = `<div class="blocked"><b>🛡️ Blocked by NeuVector DLP</b>That looked like a credit card number, so NeuVector dropped the request
+        before it reached the pod. Geeko never saw it.<br><small>Rule: <code>sensor.creditcard</code> → deny on group <code>nv.jj-ai.jj-ai</code></small></div>`;
+      started = true; return;
+    }
+    if (!res) throw new Error("network error");
+    if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || res.statusText); }
+    const reader = res.body.getReader(), dec = new TextDecoder(); let buf = "";
+    while (true) {
+      const { value, done } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, i); buf = buf.slice(i + 1); if (!line) continue;
+        const ev = JSON.parse(line);
+        if (ev.error) throw new Error(ev.error);
+        if (ev.think) { thinking += ev.think; const t = $("think"); t.hidden = false; t.textContent = thinking.slice(-400); }
+        if (ev.c) { started = true; answer += ev.c; $("think").hidden = true; $("ans").innerHTML = md(answer) + '<span class="caret"></span>'; }
+        if (ev.done) {
+          $("ans").innerHTML = md(answer);
+          $("meta").innerHTML = `<span>⚡ ${ev.tps} tok/s</span><span>🧮 ${ev.tokens} tokens</span><span>⏱️ ${ev.secs}s</span><span>🏠 100% on-cluster</span>`;
+          confetti();
+        }
+      }
+    }
+    if (!started) $("ans").innerHTML = '<span class="err">Geeko went quiet. Try again?</span>';
+  } catch (e) {
+    $("ans").innerHTML = `<span class="err">🙈 ${esc(String(e.message || e))}</span>`;
+  } finally {
+    $("go").disabled = false; $("go").textContent = "Unleash Geeko 🚀";
+  }
+};
+$("input").addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) $("go").click(); });
+
+renderModes(); loadStats(); setInterval(loadStats, 30000);
+</script>
+</body>
+</html>

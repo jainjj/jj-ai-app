@@ -1,0 +1,18 @@
+# Register this repo with Fleet. Apply it to the Rancher *management* cluster, or
+# create the same thing in Rancher under Continuous Delivery → Git Repos.
+# Every downstream cluster labelled  jj-ai=enabled  gets the app.
+apiVersion: fleet.cattle.io/v1alpha1
+kind: GitRepo
+metadata:
+  name: jj-ai
+  namespace: fleet-default
+spec:
+  repo: https://github.com/CHANGE-ME/jj-ai-fleet.git
+  branch: main
+  paths:
+    - jj-ai
+  targets:
+    - name: labelled
+      clusterSelector:
+        matchLabels:
+          jj-ai: enabled
