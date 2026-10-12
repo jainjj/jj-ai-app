@@ -7,7 +7,7 @@ metadata:
   name: jj-ai
   namespace: fleet-default
 spec:
-  repo: https://github.com/CHANGE-ME/jj-ai-fleet.git
+  repo: https://github.com/jainjj/jj-ai-app.git
   branch: main
   paths:
     - jj-ai
