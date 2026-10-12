@@ -15,13 +15,3 @@ ingress:
   host: ""
   # Empty uses the cluster's default IngressClass.
   className: ""
-
-# NeuVector policy: DLP blocks credit card numbers, plus a network/process whitelist.
-# Needs NeuVector installed. Protect also blocks every connection not whitelisted,
-# so only turn it on where the peers below exist.
-neuvector:
-  enabled: false
-  policyMode: Protect
-  # Ingress controller allowed to reach the app, as NeuVector names it: <deployment>.<namespace>
-  ingressController: traefik.kube-system
-  dns: coredns.kube-system

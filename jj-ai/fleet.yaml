@@ -10,14 +10,3 @@ helm:
     ingress:
       # e.g. label the cluster  jj-ai/host=jj-ai.34.244.248.6.sslip.io
       host: '${ get .ClusterLabels "jj-ai/host" }'
-
-targetCustomizations:
-  # Label a cluster  jj-ai/neuvector=enabled  to add the NeuVector DLP policy.
-  - name: neuvector
-    clusterSelector:
-      matchLabels:
-        jj-ai/neuvector: enabled
-    helm:
-      values:
-        neuvector:
-          enabled: true

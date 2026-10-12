@@ -71,9 +71,6 @@
   @keyframes blink { 50% { opacity: 0; } }
   .meta { margin-top: 12px; color: var(--muted); font-size: 12px; display: flex; gap: 14px; flex-wrap: wrap; }
   .err { color: var(--persimmon); }
-  .blocked { border: 1px solid var(--persimmon); background: linear-gradient(160deg, #fe7c3f22, transparent); border-radius: 12px; padding: 14px 16px; white-space: normal; }
-  .blocked b { display: block; font-size: 18px; color: var(--persimmon); margin-bottom: 4px; }
-  .blocked small { color: var(--muted); }
   .dots::after { content: ""; animation: dots 1.2s steps(4) infinite; }
   @keyframes dots { 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
   footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: center; }
@@ -111,7 +108,7 @@
 
   <section class="out empty" id="out">Pick a game above and hit the button. Running a 20B model on CPU, so give Geeko a moment to warm up ☕</section>
 
-  <footer>Deployed as <code>jj-ai</code> on cluster-2 · SUSE Rancher Prime · NeuVector-guarded · 100% open source vibes</footer>
+  <footer>Deployed as <code>jj-ai</code> on cluster-2 · SUSE Rancher Prime · 100% open source vibes</footer>
 </div>
 
 <script>
@@ -124,13 +121,6 @@ const MODES = [
   { id: "eli5",    e: "🧸", t: "Explain Like I'm 5", d: "K8s concepts, crayon edition", input: true, ph: "e.g. What is an Ingress?" },
   { id: "chat",    e: "💬", t: "Ask Geeko",        d: "Anything goes", input: true, ph: "Ask the chameleon anything…" },
 ];
-// Card-like number (13-19 digits, optional spaces/dashes) passing the Luhn check.
-// Only used to explain a dropped request; the actual blocking is done by NeuVector.
-const looksLikeCard = s => (s.match(/\b\d(?:[ -]?\d){12,18}\b/g) || []).some(m => {
-  const d = m.replace(/\D/g, ""); let sum = 0;
-  for (let i = 0; i < d.length; i++) { let n = +d[d.length - 1 - i]; if (i % 2) { n *= 2; if (n > 9) n -= 9; } sum += n; }
-  return sum % 10 === 0;
-});
 let mode = "roast";
 const $ = id => document.getElementById(id);
 const esc = s => s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
@@ -185,17 +175,7 @@ $("go").onclick = async () => {
   $("go").disabled = true; $("go").textContent = "Geeko is cooking…";
   let answer = "", thinking = "", started = false;
   try {
-    let res;
-    try {
-      res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, input }) });
-    } catch (e) { res = null; }
-    // NeuVector resets the connection, so Traefik answers 502 (or the fetch dies outright).
-    if ((!res || res.status === 502) && looksLikeCard(input)) {
-      $("ans").innerHTML = `<div class="blocked"><b>🛡️ Blocked by NeuVector DLP</b>That looked like a credit card number, so NeuVector dropped the request
-        before it reached the pod. Geeko never saw it.<br><small>Rule: <code>sensor.creditcard</code> → deny on group <code>nv.jj-ai.jj-ai</code></small></div>`;
-      started = true; return;
-    }
-    if (!res) throw new Error("network error");
+    const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, input }) });
     if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || res.statusText); }
     const reader = res.body.getReader(), dec = new TextDecoder(); let buf = "";
     while (true) {
