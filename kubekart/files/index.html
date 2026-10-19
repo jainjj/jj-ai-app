@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KubeKart · Cloud-native gear</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>">
+<style>
+  :root {
+    --bg: #f6f8f7; --panel: #ffffff; --ink: #0c322c; --muted: #5d7a72; --line: #dfe8e4;
+    --brand: #30ba78; --brand-ink: #0c322c; --brand-soft: #e3f6ec; --accent: #fe7c3f; --danger: #d6453d;
+    --shadow: 0 1px 2px #0c322c14, 0 8px 24px #0c322c0f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #07130f; --panel: #0e211c; --ink: #e6f5ee; --muted: #8fb3a6; --line: #1d3d35;
+            --brand-soft: #123a2c; --shadow: 0 1px 2px #0006, 0 8px 24px #0004; }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  button { font: inherit; cursor: pointer; }
+  input { font: inherit; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+
+  header { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--panel) 88%, transparent);
+           backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .bar { display: flex; align-items: center; gap: 14px; height: 64px; }
+  .logo { font-weight: 800; font-size: 22px; letter-spacing: -.5px; display: flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap; }
+  .logo span { color: var(--brand); }
+  nav { display: flex; gap: 4px; }
+  nav button { background: none; border: 0; color: var(--muted); padding: 8px 12px; border-radius: 10px; font-weight: 600; }
+  nav button.on, nav button:hover { color: var(--ink); background: var(--brand-soft); }
+  .search { flex: 1; min-width: 0; }
+  .search input { width: 100%; padding: 9px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  .icon-btn { position: relative; background: var(--panel); border: 1px solid var(--line); color: var(--ink); border-radius: 12px; padding: 8px 12px; font-weight: 600; white-space: nowrap; }
+  .badge { position: absolute; top: -6px; right: -6px; background: var(--accent); color: #fff; border-radius: 99px; font-size: 11px; min-width: 19px; height: 19px; display: grid; place-items: center; padding: 0 5px; }
+  .plus-tag { background: linear-gradient(135deg, #30ba78, #2453ff); color: #fff; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 99px; letter-spacing: .04em; }
+
+  .hero { margin: 22px 0; border-radius: 20px; padding: 28px; color: #fff; display: flex; gap: 20px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+          background: radial-gradient(circle at 85% 20%, #2453ff99, transparent 50%), linear-gradient(135deg, #0c322c, #1a7a52); }
+  .hero h1 { margin: 0 0 6px; font-size: clamp(24px, 4vw, 36px); letter-spacing: -1px; line-height: 1.1; }
+  .hero p { margin: 0; opacity: .85; max-width: 520px; }
+  .btn { border: 0; border-radius: 12px; padding: 11px 18px; font-weight: 700; background: var(--brand); color: var(--brand-ink); }
+  .btn:hover { filter: brightness(1.05); }
+  .btn:disabled { opacity: .55; cursor: progress; }
+  .btn.ghost { background: transparent; color: inherit; border: 1px solid currentColor; }
+  .btn.white { background: #fff; color: #0c322c; }
+  .btn.block { width: 100%; }
+
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chip { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 99px; padding: 6px 14px; font-weight: 600; text-transform: capitalize; }
+  .chip.on { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow); transition: transform .15s; }
+  .card:hover { transform: translateY(-3px); }
+  .thumb { height: 150px; display: grid; place-items: center; font-size: 72px; background: linear-gradient(135deg, var(--brand-soft), transparent); }
+  .card .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .card h3 { margin: 0; font-size: 16px; }
+  .card p { margin: 0; color: var(--muted); font-size: 13px; flex: 1; }
+  .price { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .price b { font-size: 18px; }
+  .price s { color: var(--muted); font-size: 13px; }
+  .price .mem { color: var(--brand); font-size: 12.5px; font-weight: 700; }
+  .card .btn { margin-top: 6px; }
+
+  .section-title { margin: 26px 0 14px; font-size: 22px; letter-spacing: -.4px; }
+  .empty { color: var(--muted); text-align: center; padding: 40px 0; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px; box-shadow: var(--shadow); }
+  .order { margin-bottom: 12px; }
+  .order-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-weight: 700; }
+  .order-head span { color: var(--muted); font-weight: 500; font-size: 13px; }
+  .order ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); }
+
+  .tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .tier h3 { margin: 0; font-size: 20px; }
+  .tier .amt { font-size: 32px; font-weight: 800; margin: 6px 0; }
+  .tier .amt small { font-size: 14px; color: var(--muted); font-weight: 500; }
+  .tier ul { padding: 0; list-style: none; margin: 12px 0 18px; display: grid; gap: 8px; }
+  .tier li::before { content: "✓ "; color: var(--brand); font-weight: 800; }
+  .tier.plus { border: 2px solid var(--brand); position: relative; }
+  .tier.plus::after { content: "Most popular"; position: absolute; top: -12px; right: 16px; background: var(--brand); color: var(--brand-ink); font-size: 12px; font-weight: 800; padding: 2px 10px; border-radius: 99px; }
+
+  .demo-note { background: #fff6e5; color: #6b4500; border: 1px dashed #e8b453; border-radius: 12px; padding: 10px 12px; font-size: 13px; }
+  @media (prefers-color-scheme: dark) { .demo-note { background: #2b2210; color: #f3d28b; border-color: #8a6a26; } }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); margin: 10px 0; }
+
+  .scrim { position: fixed; inset: 0; background: #0006; z-index: 40; display: none; }
+  .scrim.on { display: block; }
+  .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100%); background: var(--panel); z-index: 50; transform: translateX(100%);
+            transition: transform .25s; display: flex; flex-direction: column; border-left: 1px solid var(--line); }
+  .drawer.on { transform: none; }
+  .drawer-head { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+  .drawer-head h2 { margin: 0; font-size: 18px; }
+  .x { background: none; border: 0; font-size: 22px; color: var(--muted); }
+  .drawer-body { flex: 1; overflow: auto; padding: 14px 18px; }
+  .drawer-foot { padding: 16px 18px; border-top: 1px solid var(--line); }
+  .line { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .line .em { font-size: 30px; width: 46px; height: 46px; display: grid; place-items: center; background: var(--brand-soft); border-radius: 12px; }
+  .line .nm { flex: 1; font-weight: 600; font-size: 14px; }
+  .line .nm small { display: block; color: var(--muted); font-weight: 500; }
+  .qty { display: flex; align-items: center; gap: 6px; }
+  .qty button { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  .sum { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); margin: 4px 0; }
+  .sum.total { color: var(--ink); font-weight: 800; font-size: 17px; margin-top: 8px; }
+
+  .modal { position: fixed; z-index: 60; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(400px, calc(100% - 32px)); display: none; }
+  .modal.on { display: block; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .tabs button { flex: 1; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--muted); font-weight: 700; }
+  .tabs button.on { background: var(--brand-soft); color: var(--ink); border-color: var(--brand); }
+  label.f { display: block; font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+  .f + input, .in { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  .err { color: var(--danger); font-size: 13px; min-height: 18px; margin-top: 8px; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(140%); background: var(--ink); color: var(--panel);
+           padding: 12px 18px; border-radius: 12px; z-index: 70; transition: transform .25s; font-weight: 600; max-width: calc(100% - 32px); }
+  .toast.on { transform: translateX(-50%); }
+
+  /* Kiko the assistant */
+  .fab { position: fixed; right: 20px; bottom: 20px; z-index: 30; border: 0; border-radius: 99px; padding: 14px 18px; font-weight: 800;
+         background: linear-gradient(135deg, #30ba78, #2453ff); color: #fff; box-shadow: 0 10px 30px #2453ff55; }
+  .chat { position: fixed; right: 20px; bottom: 84px; z-index: 35; width: min(390px, calc(100% - 32px)); height: min(560px, calc(100vh - 120px));
+          background: var(--panel); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 20px 60px #0003; display: none; flex-direction: column; overflow: hidden; }
+  .chat.on { display: flex; }
+  .chat-head { padding: 14px 16px; background: linear-gradient(135deg, #0c322c, #1a7a52); color: #fff; }
+  .chat-head b { font-size: 16px; }
+  .chat-head small { display: block; opacity: .8; font-size: 12px; }
+  .msgs { flex: 1; overflow: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 88%; padding: 9px 12px; border-radius: 14px; white-space: pre-wrap; word-wrap: break-word; font-size: 14px; }
+  .msg.user { align-self: flex-end; background: var(--brand); color: var(--brand-ink); border-bottom-right-radius: 4px; }
+  .msg.bot { align-self: flex-start; background: var(--bg); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .msg.bot.err { color: var(--danger); }
+  .pchip { display: inline-flex; align-items: center; gap: 4px; margin: 2px 2px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--brand);
+           background: var(--brand-soft); color: var(--ink); font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+  .chat-foot { border-top: 1px solid var(--line); padding: 10px; }
+  .chat-foot form { display: flex; gap: 8px; }
+  .chat-foot input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  .quota { font-size: 12px; color: var(--muted); margin-top: 6px; display: flex; justify-content: space-between; gap: 8px; }
+  .dots::after { content: ""; animation: dots 1.2s steps(4) infinite; }
+  @keyframes dots { 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+
+  footer { margin: 40px 0 90px; color: var(--muted); font-size: 13px; }
+  .status { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .svc { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--panel); border-radius: 99px; padding: 3px 10px; font-size: 12px; }
+  .svc i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .svc.ok i { background: var(--brand); box-shadow: 0 0 6px var(--brand); }
+  .svc.down i { background: var(--danger); }
+
+  @media (max-width: 760px) {
+    .bar { flex-wrap: wrap; height: auto; padding: 10px 0; }
+    .search { order: 5; flex-basis: 100%; }
+    nav { order: 4; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap bar">
+    <div class="logo" data-go="shop">🛒 Kube<span>Kart</span></div>
+    <nav id="nav">
+      <button data-go="shop" class="on">Shop</button>
+      <button data-go="orders">Orders</button>
+      <button data-go="plus">Plus</button>
+    </nav>
+    <div class="search"><input id="q" type="search" placeholder="Search hoodies, mugs, keyboards…" aria-label="Search products"></div>
+    <button class="icon-btn" id="account">Sign in</button>
+    <button class="icon-btn" id="cartBtn" aria-label="Open cart">🛍️ Cart<span class="badge" id="cartCount" hidden>0</span></button>
+  </div>
+</header>
+
+<main class="wrap" id="main"></main>
+
+<footer class="wrap">
+  <div>KubeKart is a demo shop. Every page is served by microservices on this Kubernetes cluster, and Kiko runs on
+    <b>SUSE AI</b> (<span id="aiModel">Ollama</span>). Payments are simulated: no real money, no card details.</div>
+  <div class="status" id="status"></div>
+</footer>
+
+<div class="scrim" id="scrim"></div>
+
+<aside class="drawer" id="cart" aria-label="Cart">
+  <div class="drawer-head"><h2>Your cart</h2><button class="x" data-close>×</button></div>
+  <div class="drawer-body" id="cartBody"></div>
+  <div class="drawer-foot" id="cartFoot"></div>
+</aside>
+
+<div class="modal panel" id="auth" role="dialog" aria-modal="true" aria-label="Sign in">
+  <div class="tabs"><button data-tab="login" class="on">Sign in</button><button data-tab="register">Create account</button></div>
+  <form id="authForm">
+    <div id="nameRow" hidden><label class="f" for="aName">Name</label><input id="aName" autocomplete="name"></div>
+    <label class="f" for="aEmail">Email</label><input id="aEmail" type="email" autocomplete="email" required>
+    <label class="f" for="aPw">Password</label><input id="aPw" type="password" autocomplete="current-password" minlength="8" required>
+    <div class="err" id="authErr"></div>
+    <button class="btn block" id="authGo">Sign in</button>
+  </form>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<button class="fab" id="fab">💬 Ask Kiko</button>
+<section class="chat" id="chat" aria-label="Kiko shopping assistant">
+  <div class="chat-head"><b>🦎 Kiko</b><small>Your shopping assistant · powered by SUSE AI on this cluster</small></div>
+  <div class="msgs" id="msgs"></div>
+  <div class="chat-foot">
+    <form id="chatForm"><input id="chatIn" placeholder="Gift ideas under €30?" maxlength="500" autocomplete="off"><button class="btn" id="chatGo">Send</button></form>
+    <div class="quota"><span id="quota"></span><span id="chatModel"></span></div>
+  </div>
+</section>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const eur = c => "€" + (c / 100).toFixed(2);
+const store = {
+  get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+const S = {
+  view: "shop", cat: "", q: "", products: [], byId: {},
+  token: store.get("kk.token", ""), user: store.get("kk.user", null),
+  cart: store.get("kk.cart", []),            // [{id, qty}]
+  chat: [], chatBusy: false,
+};
+const isPlus = () => S.user?.tier === "plus";
+
+async function api(path, opts = {}) {
+  const headers = { "Content-Type": "application/json" };
+  if (S.token) headers.Authorization = "Bearer " + S.token;
+  const res = await fetch("/api/" + path, { ...opts, headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401 && S.token) signOut(false);
+  if (!res.ok) throw Object.assign(new Error(data.error || res.statusText), { status: res.status });
+  return data;
+}
+
+function setSession(s) {
+  S.token = s?.token || ""; S.user = s?.user || null;
+  store.set("kk.token", S.token); store.set("kk.user", S.user);
+  renderHeader(); render(); refreshQuota();
+}
+function signOut(notify = true) { setSession(null); if (notify) toast("Signed out. See you soon!"); }
+
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), 3200);
+}
+
+// ---------------------------------------------------------------- header + nav
+function renderHeader() {
+  $("account").innerHTML = S.user ? `${esc(S.user.name.split(" ")[0])} ${isPlus() ? '<span class="plus-tag">PLUS</span>' : ""} · Sign out` : "Sign in";
+  const n = S.cart.reduce((a, l) => a + l.qty, 0);
+  $("cartCount").hidden = !n; $("cartCount").textContent = n;
+  document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.go === S.view));
+}
+document.addEventListener("click", e => {
+  const go = e.target.closest("[data-go]"); if (go) { S.view = go.dataset.go; renderHeader(); render(); window.scrollTo(0, 0); }
+  const add = e.target.closest("[data-add]"); if (add) addToCart(add.dataset.add);
+  const cat = e.target.closest("[data-cat]"); if (cat) { S.cat = cat.dataset.cat; render(); }
+  if (e.target.closest("[data-close]") || e.target === $("scrim")) closeAll();
+});
+$("account").onclick = () => S.user ? signOut() : openAuth("login");
+$("q").addEventListener("input", e => { S.q = e.target.value.toLowerCase(); if (S.view !== "shop") { S.view = "shop"; renderHeader(); } render(); });
+
+// ---------------------------------------------------------------- views
+function priceHtml(p) {
+  return isPlus()
+    ? `<div class="price"><b>${eur(p.member_price_cents)}</b><s>${eur(p.price_cents)}</s><span class="mem">Plus price</span></div>`
+    : `<div class="price"><b>${eur(p.price_cents)}</b><span class="mem">${eur(p.member_price_cents)} with Plus</span></div>`;
+}
+
+function render() {
+  const m = $("main");
+  if (S.view === "shop") {
+    const cats = [...new Set(S.products.map(p => p.category))];
+    const items = S.products.filter(p => (!S.cat || p.category === S.cat) && (!S.q || (p.name + p.description).toLowerCase().includes(S.q)));
+    m.innerHTML = `
+      ${isPlus() ? "" : `<section class="hero"><div><h1>Gear for people who ship.</h1>
+        <p>Join <b>KubeKart Plus</b> for 10% off everything, free shipping and unlimited chats with Kiko, our SUSE AI assistant.</p></div>
+        <button class="btn white" data-go="plus">See Plus · €4.99/mo</button></section>`}
+      <h2 class="section-title">${isPlus() ? "Welcome back, Plus member 💚" : "All products"}</h2>
+      <div class="chips"><button class="chip ${S.cat ? "" : "on"}" data-cat="">All</button>
+        ${cats.map(c => `<button class="chip ${S.cat === c ? "on" : ""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+      ${items.length ? `<div class="grid">${items.map(p => `
+        <article class="card"><div class="thumb">${p.emoji}</div><div class="body">
+          <h3>${esc(p.name)}</h3><p>${esc(p.description)}</p>${priceHtml(p)}
+          <button class="btn" data-add="${p.id}">Add to cart</button></div></article>`).join("")}</div>`
+        : `<div class="empty">${S.products.length ? "No products match that search." : '<span class="dots">Loading the catalog</span>'}</div>`}`;
+  } else if (S.view === "orders") {
+    if (!S.user) { m.innerHTML = `<h2 class="section-title">Your orders</h2><div class="panel empty">Sign in to see your orders.<br><br><button class="btn" onclick="openAuth('login')">Sign in</button></div>`; return; }
+    m.innerHTML = `<h2 class="section-title">Your orders</h2><div id="orders" class="empty"><span class="dots">Loading</span></div>`;
+    api("orders/orders").then(d => {
+      $("orders").className = "";
+      $("orders").innerHTML = d.orders.length ? d.orders.map(o => `
+        <div class="panel order"><div class="order-head">${esc(o.id)} · ${eur(o.total_cents)}
+          <span>${new Date(o.created * 1000).toLocaleString()} · ${esc(o.status)} · ${esc(o.payment_id)}</span></div>
+          <ul>${o.items.map(i => `<li>${i.emoji} ${esc(i.name)} × ${i.qty}</li>`).join("")}</ul>
+          <div class="sum">${o.discount_cents ? `Plus discount −${eur(o.discount_cents)} · ` : ""}Shipping ${o.shipping_cents ? eur(o.shipping_cents) : "free"}</div></div>`).join("")
+        : `<div class="panel empty">No orders yet. Time to treat yourself? <br><br><button class="btn" data-go="shop">Browse the shop</button></div>`;
+    }).catch(e => { $("orders").innerHTML = `<div class="panel err">${esc(e.message)}</div>`; });
+  } else if (S.view === "plus") {
+    m.innerHTML = `<h2 class="section-title">KubeKart Plus</h2>
+      <div class="tiers">
+        <div class="panel tier"><h3>Free</h3><div class="amt">€0 <small>forever</small></div>
+          <ul><li>Full catalog</li><li>Free shipping from €50</li><li>5 Kiko chats a day</li></ul>
+          <button class="btn ghost block" disabled>${isPlus() ? "Included" : "Your current plan"}</button></div>
+        <div class="panel tier plus"><h3>Plus <span class="plus-tag">PLUS</span></h3><div class="amt">€4.99 <small>/ month</small></div>
+          <ul><li>10% member price on everything</li><li>Free shipping on every order</li><li>Unlimited Kiko chats on SUSE AI</li></ul>
+          ${isPlus()
+            ? `<button class="btn block" disabled>You're a Plus member 💚</button><br><br><button class="btn ghost block" id="leave">Cancel Plus</button>`
+            : `<div class="demo-note">🧪 <b>Demo payment.</b> No real money moves and no card details are asked for.</div>
+               <label class="check"><input type="checkbox" id="plusDecline"> Simulate a declined payment</label>
+               <button class="btn block" id="join">Join Plus · pay €4.99 with Demo Pay</button><div class="err" id="plusErr"></div>`}
+        </div></div>`;
+    $("join") && ($("join").onclick = joinPlus);
+    $("leave") && ($("leave").onclick = async () => { setSession(await api("users/membership", { method: "DELETE" })); toast("Plus cancelled. You're on the Free plan."); });
+  }
+}
+
+async function joinPlus() {
+  if (!S.user) return openAuth("register", "Create an account to join Plus.");
+  const b = $("join"); b.disabled = true; b.textContent = "Processing demo payment…";
+  try {
+    const r = await api("users/membership", { method: "POST", body: { simulate_decline: $("plusDecline").checked } });
+    setSession(r); toast(`Welcome to Plus! Demo payment ${r.payment.id} succeeded.`); renderCart();
+  } catch (e) { $("plusErr").textContent = e.message; b.disabled = false; b.textContent = "Join Plus · pay €4.99 with Demo Pay"; }
+}
+
+// ---------------------------------------------------------------- cart
+function addToCart(id) {
+  const l = S.cart.find(x => x.id === id);
+  if (l) l.qty = Math.min(10, l.qty + 1); else S.cart.push({ id, qty: 1 });
+  saveCart(); toast(`${S.byId[id]?.emoji || ""} ${S.byId[id]?.name || id} added to your cart`);
+}
+function saveCart() { S.cart = S.cart.filter(l => l.qty > 0 && S.byId[l.id] || !S.products.length); store.set("kk.cart", S.cart); renderHeader(); renderCart(); }
+function totals() {
+  let sub = 0, mem = 0;
+  for (const l of S.cart) { const p = S.byId[l.id]; if (p) { sub += p.price_cents * l.qty; mem += p.member_price_cents * l.qty; } }
+  const disc = isPlus() ? sub - mem : 0;
+  const ship = !sub || isPlus() || sub - disc >= 5000 ? 0 : 495;
+  return { sub, mem, disc, ship, total: sub - disc + ship };
+}
+function renderCart() {
+  const lines = S.cart.filter(l => S.byId[l.id]);
+  $("cartBody").innerHTML = lines.length ? lines.map(l => { const p = S.byId[l.id]; return `
+    <div class="line"><div class="em">${p.emoji}</div><div class="nm">${esc(p.name)}<small>${eur(isPlus() ? p.member_price_cents : p.price_cents)} each</small></div>
+      <div class="qty"><button data-q="${p.id}" data-d="-1" aria-label="Fewer">−</button>${l.qty}<button data-q="${p.id}" data-d="1" aria-label="More">+</button></div></div>`; }).join("")
+    : `<div class="empty">Your cart is empty.</div>`;
+  const t = totals();
+  $("cartFoot").innerHTML = lines.length ? `
+    <div class="sum"><span>Subtotal</span><span>${eur(t.sub)}</span></div>
+    ${t.disc ? `<div class="sum"><span>Plus discount</span><span>−${eur(t.disc)}</span></div>` : ""}
+    <div class="sum"><span>Shipping</span><span>${t.ship ? eur(t.ship) : "Free"}</span></div>
+    <div class="sum total"><span>Total</span><span>${eur(t.total)}</span></div>
+    ${isPlus() ? "" : `<div class="sum"><span>With Plus you'd pay ${eur(t.mem)}, shipping included</span><a href="#" data-go="plus" data-close>Join</a></div>`}
+    <div class="demo-note" style="margin-top:10px">🧪 <b>Demo Pay.</b> Simulated payment: no real money, no card details.</div>
+    <label class="check"><input type="checkbox" id="decline"> Simulate a declined payment</label>
+    <button class="btn block" id="pay">${S.user ? `Pay ${eur(t.total)} with Demo Pay` : "Sign in to check out"}</button>
+    <div class="err" id="payErr"></div>` : "";
+  $("pay") && ($("pay").onclick = checkout);
+}
+$("cartBody").addEventListener("click", e => {
+  const b = e.target.closest("[data-q]"); if (!b) return;
+  const l = S.cart.find(x => x.id === b.dataset.q); l.qty = Math.min(10, l.qty + +b.dataset.d); saveCart();
+});
+async function checkout() {
+  if (!S.user) return openAuth("login", "Sign in to check out.");
+  const b = $("pay"); b.disabled = true; b.textContent = "Processing demo payment…";
+  try {
+    const o = await api("orders/orders", { method: "POST", body: { items: S.cart, simulate_decline: $("decline").checked } });
+    S.cart = []; saveCart(); closeAll(); S.view = "orders"; renderHeader(); render();
+    toast(`🎉 Order ${o.id} placed: ${eur(o.total_cents)} paid with Demo Pay`);
+  } catch (e) { $("payErr").textContent = e.message; b.disabled = false; b.textContent = `Pay ${eur(totals().total)} with Demo Pay`; }
+}
+$("cartBtn").onclick = () => { renderCart(); $("cart").classList.add("on"); $("scrim").classList.add("on"); };
+function closeAll() { ["cart", "auth"].forEach(id => $(id).classList.remove("on")); $("scrim").classList.remove("on"); }
+
+// ---------------------------------------------------------------- auth
+let authMode = "login";
+function openAuth(mode, why) {
+  closeAll(); setAuthMode(mode); $("authErr").textContent = why || "";
+  $("auth").classList.add("on"); $("scrim").classList.add("on"); setTimeout(() => $(mode === "register" ? "aName" : "aEmail").focus(), 50);
+}
+function setAuthMode(mode) {
+  authMode = mode; $("nameRow").hidden = mode !== "register"; $("aName").required = mode === "register";
+  $("aPw").autocomplete = mode === "register" ? "new-password" : "current-password";
+  $("authGo").textContent = mode === "register" ? "Create account" : "Sign in";
+  document.querySelectorAll("[data-tab]").forEach(b => b.classList.toggle("on", b.dataset.tab === mode));
+}
+document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => setAuthMode(b.dataset.tab));
+$("authForm").onsubmit = async e => {
+  e.preventDefault(); $("authErr").textContent = ""; $("authGo").disabled = true;
+  try {
+    const body = { email: $("aEmail").value, password: $("aPw").value, ...(authMode === "register" ? { name: $("aName").value } : {}) };
+    setSession(await api("users/" + authMode, { method: "POST", body }));
+    closeAll(); $("aPw").value = ""; toast(authMode === "register" ? `Welcome to KubeKart, ${S.user.name}!` : `Welcome back, ${S.user.name}!`);
+  } catch (err) { $("authErr").textContent = err.message; } finally { $("authGo").disabled = false; }
+};
+
+// ---------------------------------------------------------------- Kiko
+function botHtml(text) {
+  return esc(text).replace(/\[\[([a-z0-9-]+)\]\]/g, (m, id) => {
+    const p = S.byId[id]; if (!p) return "";
+    return `<button class="pchip" data-add="${id}" title="Add to cart">${p.emoji} ${esc(p.name)} · ${eur(isPlus() ? p.member_price_cents : p.price_cents)} ＋</button>`;
+  }).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+}
+function renderChat() {
+  const box = $("msgs");
+  box.innerHTML = (S.chat.length ? "" : `<div class="msg bot">Hi! I'm Kiko 🦎 Ask me for gift ideas, product comparisons, or what Plus gets you.</div>`)
+    + S.chat.map(m => `<div class="msg ${m.role === "user" ? "user" : "bot"} ${m.error ? "err" : ""}">${m.role === "user" ? esc(m.content) : (m.content ? botHtml(m.content) : `<span class="dots">${esc(m.status || "Kiko is thinking")}</span>`)}</div>`).join("");
+  box.scrollTop = box.scrollHeight;
+}
+async function refreshQuota() {
+  try {
+    const q = await api("assistant/quota");
+    $("quota").textContent = q.limit === null ? "Unlimited chats with Plus 💚" : `${Math.max(0, q.limit - q.used)} of ${q.limit} free chats left today`;
+  } catch { $("quota").textContent = ""; }
+}
+$("fab").onclick = () => { const on = $("chat").classList.toggle("on"); if (on) { renderChat(); refreshQuota(); $("chatIn").focus(); } };
+$("chatForm").onsubmit = async e => {
+  e.preventDefault();
+  const text = $("chatIn").value.trim(); if (!text || S.chatBusy) return;
+  $("chatIn").value = ""; S.chatBusy = true; $("chatGo").disabled = true;
+  S.chat.push({ role: "user", content: text });
+  const reply = { role: "assistant", content: "", status: "Kiko is thinking (SUSE AI runs on CPU here, so this can take a minute)" };
+  S.chat.push(reply); renderChat();
+  try {
+    const headers = { "Content-Type": "application/json" }; if (S.token) headers.Authorization = "Bearer " + S.token;
+    const res = await fetch("/api/assistant/chat", { method: "POST", headers,
+      body: JSON.stringify({ messages: S.chat.filter(m => m !== reply && !m.error).map(({ role, content }) => ({ role, content })) }) });
+    if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || res.statusText); }
+    const reader = res.body.getReader(), dec = new TextDecoder(); let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true }); let i;
+      while ((i = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, i); buf = buf.slice(i + 1); if (!line) continue;
+        const ev = JSON.parse(line);
+        if (ev.error) throw new Error(ev.error);
+        if (ev.model) $("chatModel").textContent = ev.model;
+        if (ev.c) { reply.content += ev.c; renderChat(); }
+        if (ev.done && ev.limit !== undefined) $("quota").textContent = ev.limit === null ? "Unlimited chats with Plus 💚" : `${Math.max(0, ev.limit - ev.used)} of ${ev.limit} free chats left today`;
+      }
+    }
+    if (!reply.content) throw new Error("Kiko went quiet. Try again?");
+  } catch (err) {
+    S.chat.splice(S.chat.indexOf(reply), 1, { role: "assistant", content: String(err.message || err), error: true });
+  } finally { S.chatBusy = false; $("chatGo").disabled = false; renderChat(); refreshQuota(); }
+};
+
+// ---------------------------------------------------------------- boot
+async function loadStatus() {
+  try {
+    const s = await (await fetch("/api/status")).json();
+    $("status").innerHTML = s.services.map(x => `<span class="svc ${x.ok ? "ok" : "down"}" title="${x.ok ? x.ms + " ms" : "down"}"><i></i>${esc(x.name)}</span>`).join("");
+  } catch {}
+}
+async function boot() {
+  renderHeader(); render();
+  try {
+    const d = await api("catalog/products");
+    S.products = d.products; S.byId = Object.fromEntries(d.products.map(p => [p.id, p]));
+  } catch (e) { $("main").innerHTML = `<div class="panel err" style="margin-top:24px">The catalog service is unavailable: ${esc(e.message)}</div>`; }
+  saveCart(); render();
+  if (S.token) api("users/me").then(setSession).catch(() => {});
+  api("assistant/info").then(i => { $("aiModel").textContent = `Ollama · ${i.model}`; $("chatModel").textContent = i.model; }).catch(() => {});
+  loadStatus(); setInterval(loadStatus, 20000);
+}
+boot();
+</script>
+</body>
+</html>

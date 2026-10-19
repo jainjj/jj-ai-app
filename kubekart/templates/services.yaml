@@ -1,0 +1,137 @@
+{{- /* One ConfigMap (its script + lib.py), Deployment, Service and optional PVC per microservice. */}}
+{{- $root := . }}
+{{- range $name, $svc := .Values.services }}
+{{- $full := printf "%s-%s" $root.Release.Name $name }}
+{{- $code := dict (printf "%s.py" $name) ($root.Files.Get (printf "files/%s.py" $name)) "lib.py" ($root.Files.Get "files/lib.py") }}
+{{- if eq $name "web" }}{{- $_ := set $code "index.html" ($root.Files.Get "files/index.html") }}{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $full }}-code
+  labels: {{- include "kubekart.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+data:
+  {{- range $file, $content := $code }}
+  {{ $file }}: |-
+{{ $content | indent 4 }}
+  {{- end }}
+{{- if $svc.persistent }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $full }}-data
+  labels: {{- include "kubekart.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- with $root.Values.storage.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $root.Values.storage.size }}
+{{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $full }}
+  labels: {{- include "kubekart.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+spec:
+  replicas: {{ $svc.replicas }}
+  {{- if $svc.persistent }}
+  strategy:
+    type: Recreate   # one writer per SQLite volume
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $root.Release.Name }}
+      app.kubernetes.io/name: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: kubekart
+        app.kubernetes.io/instance: {{ $root.Release.Name }}
+        app.kubernetes.io/name: {{ $name }}
+      annotations:
+        # Roll the pods whenever this service's code changes.
+        checksum/code: {{ toJson $code | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: {{ $name }}
+          image: {{ $root.Values.image }}
+          command: ["python3", "-u", "/app/{{ $name }}.py"]
+          env:
+            - { name: SERVICE_NAME, value: {{ $name | quote }} }
+            - { name: PORT, value: "8080" }
+            - { name: DATA_DIR, value: /data }
+            - { name: PYTHONDONTWRITEBYTECODE, value: "1" }
+            - name: SHOP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $root.Release.Name }}-secret
+                  key: shop-secret
+            {{- range $other, $_ := $root.Values.services }}
+            - { name: {{ upper $other }}_URL, value: "http://{{ $root.Release.Name }}-{{ $other }}:8080" }
+            {{- end }}
+            {{- if eq $name "assistant" }}
+            - { name: OLLAMA_URL, value: {{ $root.Values.ollama.url | quote }} }
+            - { name: MODEL, value: {{ $root.Values.ollama.model | quote }} }
+            - { name: FREE_DAILY, value: {{ $root.Values.assistant.freeDailyMessages | quote }} }
+            - { name: MAX_CONCURRENT, value: {{ $root.Values.assistant.maxConcurrent | quote }} }
+            {{- end }}
+          ports:
+            - { name: http, containerPort: 8080 }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 20m, memory: 48Mi }
+            limits: { cpu: 500m, memory: 192Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - { name: code, mountPath: /app, readOnly: true }
+            - { name: data, mountPath: /data }
+      volumes:
+        - name: code
+          configMap:
+            name: {{ $full }}-code
+        - name: data
+          {{- if $svc.persistent }}
+          persistentVolumeClaim:
+            claimName: {{ $full }}-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $full }}
+  labels: {{- include "kubekart.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+spec:
+  selector:
+    app.kubernetes.io/instance: {{ $root.Release.Name }}
+    app.kubernetes.io/name: {{ $name }}
+  ports:
+    - { name: http, port: 8080, targetPort: http }
+{{- end }}

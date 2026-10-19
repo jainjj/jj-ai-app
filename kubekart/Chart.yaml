@@ -1,0 +1,6 @@
+apiVersion: v2
+name: kubekart
+description: KubeKart, a microservice online shop with a demo payment tier and a SUSE AI shopping assistant.
+type: application
+version: 0.1.0
+appVersion: "1.0"

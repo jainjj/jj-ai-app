@@ -1,0 +1,18 @@
+# Register KubeKart with Fleet. Apply it to the Rancher *management* cluster, or
+# create the same thing in Rancher under Continuous Delivery → Git Repos (path: kubekart).
+# Every downstream cluster labelled  kubekart=enabled  gets the shop.
+apiVersion: fleet.cattle.io/v1alpha1
+kind: GitRepo
+metadata:
+  name: kubekart
+  namespace: fleet-default
+spec:
+  repo: https://github.com/jainjj/jj-ai-app.git
+  branch: main
+  paths:
+    - kubekart
+  targets:
+    - name: labelled
+      clusterSelector:
+        matchLabels:
+          kubekart: enabled

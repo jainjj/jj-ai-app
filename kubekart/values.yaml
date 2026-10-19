@@ -1,0 +1,31 @@
+image: registry.suse.com/bci/python:3.13
+
+# SUSE AI's Ollama. If the model isn't there, the assistant uses Ollama's first local model.
+ollama:
+  url: http://ollama.simple-chatbot-with-rag-system.svc.cluster.local:11434
+  model: gpt-oss:latest
+
+assistant:
+  freeDailyMessages: 5   # Plus members are unlimited
+  maxConcurrent: 2       # simultaneous model calls (CPU inference is slow)
+
+ingress:
+  enabled: true
+  # Empty matches any hostname. Fleet sets it from the cluster label "kubekart/host".
+  host: ""
+  # Empty uses the cluster's default IngressClass.
+  className: ""
+
+# Volumes for the services that keep data (users, orders, payments each get their own).
+storage:
+  size: 1Gi
+  storageClass: ""       # empty uses the cluster default
+
+# The microservices. Stateful ones run one replica (SQLite on a volume).
+services:
+  web:       { replicas: 2 }
+  catalog:   { replicas: 2 }
+  users:     { replicas: 1, persistent: true }
+  orders:    { replicas: 1, persistent: true }
+  payments:  { replicas: 1, persistent: true }
+  assistant: { replicas: 1 }

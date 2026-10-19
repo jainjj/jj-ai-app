@@ -1,0 +1,13 @@
+# Fleet bundle for KubeKart. Which clusters get it is decided by the GitRepo's targets
+# (see rancher/kubekart-gitrepo.yaml); per-cluster settings come from cluster labels.
+defaultNamespace: kubekart
+
+helm:
+  releaseName: kubekart
+  values:
+    ingress:
+      # e.g. label the cluster  kubekart/host=kubekart.34.244.248.6.sslip.io
+      host: '${ get .ClusterLabels "kubekart/host" }'
+    ollama:
+      # e.g.  kubekart/model=qwen3  (label values can't hold ':'; Ollama reads it as qwen3:latest).
+      model: '${ get .ClusterLabels "kubekart/model" | default "gpt-oss:latest" }'
