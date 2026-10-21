@@ -66,6 +66,10 @@ once (`<release>-secret`) and keeps across upgrades.
    | `kubekart/host=kubekart.<ingress-ip>.sslip.io` | Ingress hostname. Without it, the shop answers on any host |
    | `kubekart/model=<name>` | preferred Ollama model, e.g. `qwen3` |
 
+   To show the platform on the shop page, add the **annotation** (not a label, since it has spaces)
+   `kubekart/platform`, e.g. `SUSE Rancher, SUSE RKE2, SUSE AI Factory`. Without it the line is hidden.
+   Without Fleet, pass it with `--set`, escaping commas: `--set platform="SUSE Rancher\, SUSE RKE2\, SUSE AI Factory"`.
+
 ## Deploy without Fleet
 
 ```sh

@@ -1,5 +1,9 @@
 image: registry.suse.com/bci/python:3.13
 
+# Shown on the shop page as "Running on <platform>". Empty hides the line.
+# Fleet sets it from the cluster annotation "kubekart/platform".
+platform: ""
+
 # SUSE AI's Ollama. If the model isn't there, the assistant uses Ollama's first local model.
 ollama:
   url: http://ollama.simple-chatbot-with-rag-system.svc.cluster.local:11434

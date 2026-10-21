@@ -177,8 +177,8 @@
 <main class="wrap" id="main"></main>
 
 <footer class="wrap">
-  <div>KubeKart is a demo shop. Every page is served by microservices on a Rancher RKE2 cluster, and Kiko runs on
-    <b>SUSE AI Factory</b> (<span id="aiModel">Ollama</span>). Payments are simulated: no real money, no card details.</div>
+  <div>KubeKart is a demo shop. Every page is served by microservices on this Kubernetes cluster, and Kiko runs on
+    <b>SUSE AI</b> (<span id="aiModel">Ollama</span>). Payments are simulated: no real money, no card details.</div>
   <div class="status" id="status"></div>
 </footer>
 
@@ -223,7 +223,7 @@ const store = {
 };
 
 const S = {
-  view: "shop", cat: "", q: "", products: [], byId: {},
+  view: "shop", cat: "", q: "", products: [], byId: {}, platform: "",
   token: store.get("kk.token", ""), user: store.get("kk.user", null),
   cart: store.get("kk.cart", []),            // [{id, qty}]
   chat: [], chatBusy: false,
@@ -281,7 +281,7 @@ function render() {
     const cats = [...new Set(S.products.map(p => p.category))];
     const items = S.products.filter(p => (!S.cat || p.category === S.cat) && (!S.q || (p.name + p.description).toLowerCase().includes(S.q)));
     m.innerHTML = `
-      <div class="platform"><i></i>Running on <b>Rancher RKE2</b> with <b>SUSE AI Factory</b></div>
+      ${S.platform ? `<div class="platform"><i></i>Running on <b>${esc(S.platform)}</b></div>` : ""}
       ${isPlus() ? "" : `<section class="hero"><div><h1>Gear for people who ship.</h1>
         <p>Join <b>KubeKart Plus</b> for 10% off everything, free shipping and unlimited chats with Kiko, our SUSE AI assistant.</p></div>
         <button class="btn white" data-go="plus">See Plus · €4.99/mo</button></section>`}
@@ -459,6 +459,7 @@ $("chatForm").onsubmit = async e => {
 async function loadStatus() {
   try {
     const s = await (await fetch("/api/status")).json();
+    if ((s.platform || "") !== S.platform) { S.platform = s.platform || ""; if (S.view === "shop") render(); }
     $("status").innerHTML = s.services.map(x => `<span class="svc ${x.ok ? "ok" : "down"}" title="${x.ok ? x.ms + " ms" : "down"}"><i></i>${esc(x.name)}</span>`).join("");
   } catch {}
 }

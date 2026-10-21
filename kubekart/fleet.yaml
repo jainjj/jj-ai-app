@@ -5,6 +5,9 @@ defaultNamespace: kubekart
 helm:
   releaseName: kubekart
   values:
+    # e.g. annotate the cluster  kubekart/platform="SUSE Rancher, SUSE RKE2, SUSE AI Factory"
+    # (an annotation, because label values can't hold spaces).
+    platform: '${ get .ClusterAnnotations "kubekart/platform" | default "" }'
     ingress:
       # e.g. label the cluster  kubekart/host=kubekart.34.244.248.6.sslip.io
       host: '${ get .ClusterLabels "kubekart/host" }'

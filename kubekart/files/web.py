@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from lib import SERVICES, Handler, serve, url_of
 
 STATIC = os.environ.get("STATIC_DIR", os.path.dirname(os.path.abspath(__file__)))
+PLATFORM = os.environ.get("PLATFORM", "")
 PUBLIC = {"users", "catalog", "orders", "assistant"}
 FORWARD = ("Content-Type", "Authorization")
 
@@ -40,7 +41,8 @@ class WebHandler(Handler):
             return self.send_json(200, {"ok": True, "service": "web"})
         if path == "/api/status":
             services = [{"name": "web", "ok": True, "ms": 0}] + list(_pool.map(check, SERVICES[1:]))
-            return self.send_json(200, {"services": services, "ok": all(s["ok"] for s in services)})
+            return self.send_json(200, {"services": services, "ok": all(s["ok"] for s in services),
+                                        "platform": PLATFORM})
         if path.startswith("/api/"):
             return self.proxy(method, path)
         if method == "GET" and path in ("/", "/index.html"):

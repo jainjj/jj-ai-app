@@ -85,6 +85,9 @@ spec:
             {{- range $other, $_ := $root.Values.services }}
             - { name: {{ upper $other }}_URL, value: "http://{{ $root.Release.Name }}-{{ $other }}:8080" }
             {{- end }}
+            {{- if eq $name "web" }}
+            - { name: PLATFORM, value: {{ $root.Values.platform | quote }} }
+            {{- end }}
             {{- if eq $name "assistant" }}
             - { name: OLLAMA_URL, value: {{ $root.Values.ollama.url | quote }} }
             - { name: MODEL, value: {{ $root.Values.ollama.model | quote }} }
