@@ -140,6 +140,10 @@
   .dots::after { content: ""; animation: dots 1.2s steps(4) infinite; }
   @keyframes dots { 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
 
+  .platform { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; padding: 6px 14px; border-radius: 99px;
+              background: var(--brand-soft); color: var(--ink); font-size: 13px; }
+  .platform i { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 6px var(--brand); }
+
   footer { margin: 40px 0 90px; color: var(--muted); font-size: 13px; }
   .status { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
   .svc { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--panel); border-radius: 99px; padding: 3px 10px; font-size: 12px; }
@@ -173,8 +177,8 @@
 <main class="wrap" id="main"></main>
 
 <footer class="wrap">
-  <div>KubeKart is a demo shop. Every page is served by microservices on this Kubernetes cluster, and Kiko runs on
-    <b>SUSE AI</b> (<span id="aiModel">Ollama</span>). Payments are simulated: no real money, no card details.</div>
+  <div>KubeKart is a demo shop. Every page is served by microservices on a Rancher RKE2 cluster, and Kiko runs on
+    <b>SUSE AI Factory</b> (<span id="aiModel">Ollama</span>). Payments are simulated: no real money, no card details.</div>
   <div class="status" id="status"></div>
 </footer>
 
@@ -277,6 +281,7 @@ function render() {
     const cats = [...new Set(S.products.map(p => p.category))];
     const items = S.products.filter(p => (!S.cat || p.category === S.cat) && (!S.q || (p.name + p.description).toLowerCase().includes(S.q)));
     m.innerHTML = `
+      <div class="platform"><i></i>Running on <b>Rancher RKE2</b> with <b>SUSE AI Factory</b></div>
       ${isPlus() ? "" : `<section class="hero"><div><h1>Gear for people who ship.</h1>
         <p>Join <b>KubeKart Plus</b> for 10% off everything, free shipping and unlimited chats with Kiko, our SUSE AI assistant.</p></div>
         <button class="btn white" data-go="plus">See Plus · €4.99/mo</button></section>`}
