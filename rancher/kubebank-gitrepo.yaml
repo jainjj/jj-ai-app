@@ -1,0 +1,18 @@
+# Register KubeBank with Fleet. Apply it to the Rancher *management* cluster, or
+# create the same thing in Rancher under Continuous Delivery → Git Repos (path: kubebank).
+# Every downstream cluster labelled  kubebank=enabled  gets the bank.
+apiVersion: fleet.cattle.io/v1alpha1
+kind: GitRepo
+metadata:
+  name: kubebank
+  namespace: fleet-default
+spec:
+  repo: https://github.com/jainjj/jj-ai-app.git
+  branch: main
+  paths:
+    - kubebank
+  targets:
+    - name: labelled
+      clusterSelector:
+        matchLabels:
+          kubebank: enabled

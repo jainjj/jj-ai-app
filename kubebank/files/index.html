@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KubeBank · Cloud-native banking</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏦</text></svg>">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f3f5fa; --panel: #ffffff; --ink: #0f1630; --muted: #63708e; --line: #e2e6f0; --soft: #eef1f8;
+    --brand: #4f46e5; --brand2: #14b8a6; --brand-soft: #eceafe; --pos: #16a36a; --neg: #0f1630; --danger: #d83a52; --warn: #b7791f;
+    --grad: linear-gradient(135deg, #4f46e5, #14b8a6);
+    --shadow: 0 1px 2px #0f163010, 0 10px 30px #0f16300d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0a0e1c; --panel: #121830; --ink: #e8ecf8; --muted: #8f9abb; --line: #232c4b; --soft: #182040;
+            --brand-soft: #231f5c; --neg: #e8ecf8; --pos: #34d399; --shadow: 0 1px 2px #0006, 0 10px 30px #0005; }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 0 16px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  header { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--panel) 85%, transparent);
+           backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+  .bar { display: flex; align-items: center; gap: 12px; height: 64px; }
+  .logo { font-weight: 850; font-size: 21px; letter-spacing: -.6px; display: flex; align-items: center; gap: 9px; white-space: nowrap; cursor: pointer; }
+  .logo i { width: 30px; height: 30px; border-radius: 9px; background: var(--grad); display: grid; place-items: center; color: #fff; font-style: normal; font-size: 16px; }
+  nav { display: flex; gap: 2px; margin-left: 10px; }
+  nav a { color: var(--muted); padding: 8px 12px; border-radius: 10px; font-weight: 650; text-decoration: none; }
+  nav a.on, nav a:hover { color: var(--ink); background: var(--soft); }
+  .grow { flex: 1; }
+  .avatar { width: 36px; height: 36px; border-radius: 99px; background: var(--grad); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 14px; border: 0; }
+  .btn { border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 700; background: var(--brand); color: #fff; white-space: nowrap; }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:disabled { opacity: .55; cursor: progress; }
+  .btn.ghost { background: var(--soft); color: var(--ink); }
+  .btn.ai { background: var(--grad); }
+  .btn.danger { background: var(--danger); }
+  .btn.sm { padding: 6px 11px; font-size: 13px; border-radius: 10px; }
+  .btn.block { width: 100%; }
+  .link { background: none; border: 0; color: var(--brand); font-weight: 700; padding: 0; }
+  @media (prefers-color-scheme: dark) { .link { color: #a5a1ff; } }
+
+  main { padding: 22px 0 90px; }
+  h2.t { margin: 26px 0 12px; font-size: 19px; letter-spacing: -.3px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 18px; box-shadow: var(--shadow); }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+
+  /* auth */
+  .auth { display: grid; grid-template-columns: 1.2fr 1fr; gap: 28px; align-items: center; min-height: calc(100vh - 140px); }
+  @media (max-width: 860px) {
+    .auth { grid-template-columns: 1fr; }
+    /* phones: the nav becomes a bottom tab bar (the header loses its blur, which would trap a fixed child) */
+    header { backdrop-filter: none; background: var(--panel); }
+    nav { position: fixed; left: 0; right: 0; bottom: 0; margin: 0; z-index: 25; justify-content: space-around; padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+          background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(12px); border-top: 1px solid var(--line); }
+    .fab { bottom: 76px !important; }
+  }
+  .auth h1 { font-size: clamp(32px, 5vw, 52px); line-height: 1.02; letter-spacing: -2px; margin: 0 0 14px; }
+  .auth h1 span { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .feat { display: grid; gap: 10px; margin: 22px 0; padding: 0; list-style: none; }
+  .feat li { display: flex; gap: 12px; align-items: flex-start; }
+  .feat b { display: block; }
+  .feat .ic { width: 34px; height: 34px; flex: none; border-radius: 10px; background: var(--brand-soft); display: grid; place-items: center; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; background: var(--soft); padding: 4px; border-radius: 12px; }
+  .tabs button { flex: 1; padding: 8px; border-radius: 9px; border: 0; background: none; color: var(--muted); font-weight: 700; }
+  .tabs button.on { background: var(--panel); color: var(--ink); box-shadow: var(--shadow); }
+  label.f { display: block; font-size: 13px; font-weight: 650; margin: 12px 0 5px; }
+  .in { width: 100%; padding: 11px 12px; border-radius: 11px; border: 1px solid var(--line); background: var(--bg); }
+  .in:focus { outline: 2px solid var(--brand); outline-offset: -1px; }
+  .err { color: var(--danger); font-size: 13px; min-height: 18px; margin-top: 8px; }
+  .demo { background: #fff7e6; color: #6b4a00; border: 1px dashed #e7b75a; border-radius: 12px; padding: 9px 12px; font-size: 13px; }
+  @media (prefers-color-scheme: dark) { .demo { background: #2a2210; color: #f2d48e; border-color: #7d6326; } }
+
+  /* home */
+  .hero { border-radius: 24px; padding: 26px; color: #fff; position: relative; overflow: hidden;
+          background: radial-gradient(circle at 90% 0%, #14b8a6aa, transparent 45%), radial-gradient(circle at 0% 100%, #a855f766, transparent 50%), linear-gradient(135deg, #1e1b4b, #312e81 60%, #0f766e); }
+  .hero small { opacity: .8; }
+  .hero .big { font-size: clamp(36px, 6vw, 52px); font-weight: 850; letter-spacing: -2px; line-height: 1.1; margin: 4px 0 2px; }
+  .hero .big span { font-size: .5em; opacity: .7; letter-spacing: 0; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+  .act { display: flex; align-items: center; gap: 8px; background: #ffffff1f; border: 1px solid #ffffff33; color: #fff; border-radius: 14px; padding: 10px 14px; font-weight: 700; backdrop-filter: blur(4px); }
+  .act:hover { background: #ffffff33; }
+  .alert { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; border-radius: 16px; padding: 14px 16px; margin-top: 14px;
+           background: color-mix(in srgb, var(--danger) 10%, var(--panel)); border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); }
+  .alert .grow { min-width: 200px; }
+  .alert b { display: block; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .accts { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .acct { cursor: pointer; transition: transform .15s; }
+  .acct:hover { transform: translateY(-2px); }
+  .acct .top { display: flex; justify-content: space-between; align-items: center; }
+  .acct .em { font-size: 24px; width: 42px; height: 42px; display: grid; place-items: center; background: var(--soft); border-radius: 12px; }
+  .acct .bal { font-size: 24px; font-weight: 800; letter-spacing: -.6px; margin-top: 12px; }
+  .prog { height: 7px; background: var(--soft); border-radius: 99px; overflow: hidden; margin-top: 8px; }
+  .prog i { display: block; height: 100%; background: var(--grad); border-radius: 99px; }
+  .cols { display: grid; grid-template-columns: 1.5fr 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+
+  .vcard { aspect-ratio: 1.586; border-radius: 18px; padding: 20px; color: #fff; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden;
+           background: radial-gradient(circle at 100% 0%, #5eead4aa, transparent 50%), linear-gradient(135deg, #4338ca, #0f766e); box-shadow: 0 18px 40px #312e8155; transition: filter .3s; }
+  .vcard.frozen { filter: grayscale(1) brightness(.85); }
+  .vcard.frozen::after { content: "❄️ Frozen"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 24px; font-weight: 800; background: #9ad7ff33; backdrop-filter: blur(2px); }
+  .vcard .chip { width: 42px; height: 32px; border-radius: 7px; background: linear-gradient(135deg, #fde68a, #d4a017); }
+  .vcard .pan { font-size: 20px; letter-spacing: 3px; font-weight: 600; }
+  .vcard .meta { display: flex; justify-content: space-between; align-items: end; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+  .switch { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 14px 0 10px; font-weight: 650; }
+  .tog { width: 46px; height: 26px; border-radius: 99px; border: 0; background: var(--line); position: relative; transition: background .2s; }
+  .tog::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 99px; background: #fff; transition: transform .2s; box-shadow: 0 1px 3px #0003; }
+  .tog.on { background: #38bdf8; }
+  .tog.on::after { transform: translateX(20px); }
+
+  /* transactions */
+  .tx { display: flex; gap: 12px; align-items: center; padding: 11px 4px; border-bottom: 1px solid var(--line); }
+  .tx:last-child { border-bottom: 0; }
+  .tx .ic { width: 40px; height: 40px; flex: none; border-radius: 12px; background: var(--soft); display: grid; place-items: center; font-size: 19px; }
+  .tx .nm { flex: 1; min-width: 0; }
+  .tx .nm b { display: block; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tx .nm small { color: var(--muted); }
+  .tx .amt { font-weight: 750; white-space: nowrap; text-align: right; }
+  .tx .amt.pos { color: var(--pos); }
+  .tx .amt.dec { color: var(--muted); text-decoration: line-through; }
+  .tag { font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 99px; text-transform: uppercase; letter-spacing: .04em; }
+  .tag.declined { background: color-mix(in srgb, var(--danger) 15%, transparent); color: var(--danger); }
+  .sparkle { border: 0; background: var(--brand-soft); color: var(--brand); width: 30px; height: 30px; border-radius: 9px; flex: none; font-size: 14px; }
+  @media (prefers-color-scheme: dark) { .sparkle { color: #c4c1ff; } }
+  .day { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 4px 2px; }
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .filters .in { flex: 1; min-width: 160px; width: auto; }
+
+  /* insights */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+  .kpi small { color: var(--muted); font-weight: 650; }
+  .kpi .v { font-size: 26px; font-weight: 800; letter-spacing: -.6px; }
+  .delta { font-size: 13px; font-weight: 700; }
+  .delta.up { color: var(--danger); } .delta.down { color: var(--pos); }
+  .chart svg { width: 100%; height: auto; display: block; }
+  .catrow { display: grid; grid-template-columns: 120px 1fr auto; gap: 10px; align-items: center; margin: 9px 0; font-size: 14px; }
+  .bars { display: grid; gap: 3px; }
+  .bars i { display: block; height: 9px; border-radius: 99px; background: var(--grad); min-width: 2px; }
+  .bars i.prev { background: var(--line); }
+  .legend { display: flex; gap: 14px; font-size: 12.5px; color: var(--muted); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .donut-wrap { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .donut-legend { display: grid; gap: 4px; font-size: 13px; flex: 1; min-width: 140px; }
+  .donut-legend div { display: flex; justify-content: space-between; gap: 8px; }
+  .donut-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 6px; }
+
+  /* AI */
+  .penny { display: flex; gap: 12px; align-items: flex-start; }
+  .penny .face { width: 42px; height: 42px; flex: none; border-radius: 13px; background: var(--grad); display: grid; place-items: center; font-size: 22px; }
+  .md p { margin: 0 0 8px; } .md ul, .md ol { margin: 4px 0 8px; padding-left: 20px; } .md li { margin: 2px 0; }
+  .md h4 { margin: 8px 0 4px; font-size: 15px; }
+  .md code { background: var(--soft); padding: 1px 5px; border-radius: 5px; }
+  .thinking { color: var(--muted); font-style: italic; }
+  .dots::after { content: ""; animation: dots 1.2s steps(4) infinite; }
+  @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+  .ai-meta { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+  .goals { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .goal .ring { width: 86px; height: 86px; flex: none; }
+  .goal .head { display: flex; gap: 14px; align-items: center; }
+  .goal h3 { margin: 0; font-size: 17px; }
+  .goal .row { margin-top: 14px; }
+  .goal.new { display: grid; place-items: center; border-style: dashed; min-height: 190px; cursor: pointer; color: var(--muted); font-weight: 700; box-shadow: none; }
+
+  /* overlays */
+  .scrim { position: fixed; inset: 0; background: #0a0e1c88; z-index: 40; display: none; backdrop-filter: blur(2px); }
+  .scrim.on { display: block; }
+  .modal { position: fixed; z-index: 50; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(460px, calc(100% - 32px)); max-height: calc(100vh - 40px); overflow: auto; display: none; }
+  .modal.on { display: block; }
+  .modal.wide { width: min(600px, calc(100% - 32px)); }
+  .mhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .mhead h3 { margin: 0; font-size: 19px; }
+  .x { background: none; border: 0; font-size: 22px; color: var(--muted); }
+  .amount-in { font-size: 28px; font-weight: 800; letter-spacing: -.5px; }
+  .chat { position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100%); background: var(--panel); z-index: 45; transform: translateX(100%);
+          transition: transform .25s; display: flex; flex-direction: column; border-left: 1px solid var(--line); }
+  .chat.on { transform: none; }
+  .chat-head { padding: 16px 18px; background: linear-gradient(135deg, #1e1b4b, #0f766e); color: #fff; display: flex; gap: 12px; align-items: center; }
+  .chat-head .face { width: 40px; height: 40px; border-radius: 12px; background: #ffffff26; display: grid; place-items: center; font-size: 22px; }
+  .chat-head small { display: block; opacity: .8; font-size: 12px; }
+  .chat-head .x { color: #fff; margin-left: auto; }
+  .msgs { flex: 1; overflow: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 90%; padding: 9px 12px; border-radius: 15px; word-wrap: break-word; font-size: 14px; }
+  .msg.user { align-self: flex-end; background: var(--brand); color: #fff; border-bottom-right-radius: 4px; white-space: pre-wrap; }
+  .msg.bot { align-self: flex-start; background: var(--soft); border-bottom-left-radius: 4px; }
+  .msg.bot.err { color: var(--danger); }
+  .sugg { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sugg button { border: 1px solid var(--line); background: var(--panel); border-radius: 99px; padding: 5px 11px; font-size: 13px; font-weight: 600; }
+  .chat-foot { border-top: 1px solid var(--line); padding: 10px; }
+  .chat-foot form { display: flex; gap: 8px; }
+  .fab { position: fixed; right: 20px; bottom: 20px; z-index: 30; border: 0; border-radius: 99px; padding: 13px 18px; font-weight: 800; background: var(--grad); color: #fff; box-shadow: 0 12px 30px #4f46e566; }
+
+  .toast { position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%) translateY(200px); visibility: hidden; background: var(--ink); color: var(--panel);
+           padding: 12px 18px; border-radius: 12px; z-index: 70; transition: transform .25s; font-weight: 650; max-width: calc(100% - 32px); }
+  .toast.on { transform: translateX(-50%); visibility: visible; }
+  footer { border-top: 1px solid var(--line); padding: 18px 0 80px; font-size: 13px; color: var(--muted); }
+  .svc { display: inline-flex; align-items: center; gap: 5px; margin: 3px 10px 3px 0; }
+  .svc i { width: 8px; height: 8px; border-radius: 99px; background: var(--pos); }
+  .svc i.bad { background: var(--danger); }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap bar">
+    <div class="logo" onclick="go('home')"><i>◆</i>KubeBank</div>
+    <nav id="nav" hidden>
+      <a href="#home" data-p="home">Home</a><a href="#activity" data-p="activity">Activity</a>
+      <a href="#insights" data-p="insights">Insights</a><a href="#goals" data-p="goals">Goals</a>
+    </nav>
+    <div class="grow"></div>
+    <button class="btn ai sm" id="askBtn" hidden onclick="openChat()">✨ Ask Penny</button>
+    <button class="avatar" id="avatar" hidden title="Sign out" onclick="signOut()"></button>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- signed out -->
+  <section id="auth" class="auth" hidden>
+    <div>
+      <h1>Banking that runs on <span>Kubernetes</span>.</h1>
+      <p class="muted" style="font-size:17px;max-width:520px">KubeBank is a demo bank made of microservices, with an AI money coach that runs on SUSE AI inside the same cluster. Your data never leaves it.</p>
+      <ul class="feat">
+        <li><span class="ic">✨</span><div><b>Penny, your AI money coach</b><span class="muted small">Explains your month, any payment, and plans your savings goals.</span></div></li>
+        <li><span class="ic">🛡️</span><div><b>Real-time fraud checks</b><span class="muted small">Risky payments are held for you to confirm, and Penny tells you why.</span></div></li>
+        <li><span class="ic">🎯</span><div><b>Goals, insights and a virtual card</b><span class="muted small">Freeze your card in a tap and watch your spending by category.</span></div></li>
+      </ul>
+      <div class="demo">🧪 Demo bank: every account and euro here is play money. Never enter real card or bank details.</div>
+    </div>
+    <div class="panel">
+      <div class="tabs"><button class="on" data-t="register">Open an account</button><button data-t="login">Sign in</button></div>
+      <form id="authForm">
+        <div id="nameRow"><label class="f" for="aName">Your name</label><input class="in" id="aName" autocomplete="name" maxlength="80"></div>
+        <label class="f" for="aEmail">Email</label><input class="in" id="aEmail" type="email" autocomplete="email" required>
+        <label class="f" for="aPw">Password</label><input class="in" id="aPw" type="password" autocomplete="new-password" minlength="8" required>
+        <div class="err" id="aErr"></div>
+        <button class="btn block" id="aGo">Open my account</button>
+        <p class="muted small" id="aHint">New accounts start with two months of demo activity, so there's something to explore straight away.</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- signed in -->
+  <section id="page-home" hidden></section>
+  <section id="page-activity" hidden>
+    <h2 class="t">Activity</h2>
+    <div class="filters"><input class="in" id="q" placeholder="Search merchants, categories, notes"><select class="in" id="accFilter" style="flex:0 1 220px"></select></div>
+    <div class="panel" id="txList"></div>
+  </section>
+  <section id="page-insights" hidden></section>
+  <section id="page-goals" hidden></section>
+</main>
+
+<footer><div class="wrap" id="status">Checking services…</div></footer>
+
+<button class="fab" id="fab" hidden onclick="openChat()">✨ Penny</button>
+<div class="scrim" id="scrim" onclick="closeAll()"></div>
+
+<!-- move money -->
+<div class="modal panel" id="moveModal">
+  <div class="mhead"><h3>Move money</h3><button class="x" onclick="closeAll()">×</button></div>
+  <div class="tabs"><button class="on" data-m="own">Between my accounts</button><button data-m="person">Pay someone</button></div>
+  <form id="moveForm">
+    <label class="f" for="mFrom">From</label><select class="in" id="mFrom"></select>
+    <div id="mOwn"><label class="f" for="mTo">To</label><select class="in" id="mTo"></select></div>
+    <div id="mPerson" hidden><label class="f" for="mEmail">Payee's KubeBank email</label><input class="in" id="mEmail" type="email" placeholder="friend@example.com"></div>
+    <label class="f" for="mAmt">Amount (€)</label><input class="in amount-in num" id="mAmt" inputmode="decimal" placeholder="0.00" required>
+    <label class="f" for="mNote">Reference <span class="muted">(optional)</span></label><input class="in" id="mNote" maxlength="140" placeholder="Dinner on Friday 🍜">
+    <div class="err" id="mErr"></div>
+    <button class="btn block" id="mGo">Send</button>
+    <p class="muted small" style="margin-bottom:0">Payments to other people pass through KubeBank's fraud service first. Play money only.</p>
+  </form>
+</div>
+
+<!-- new goal -->
+<div class="modal panel" id="goalModal">
+  <div class="mhead"><h3>New savings goal</h3><button class="x" onclick="closeAll()">×</button></div>
+  <form id="goalForm">
+    <label class="f">Pick an icon</label>
+    <div class="sugg" id="gEmojis"></div>
+    <label class="f" for="gName">Name</label><input class="in" id="gName" maxlength="40" placeholder="New laptop" required>
+    <label class="f" for="gTarget">Target (€)</label><input class="in num" id="gTarget" inputmode="decimal" placeholder="1200" required>
+    <div class="err" id="gErr"></div>
+    <button class="btn block">Create goal</button>
+  </form>
+</div>
+
+<!-- AI answer sheet -->
+<div class="modal panel wide" id="aiModal">
+  <div class="mhead"><h3 id="aiTitle">Penny</h3><button class="x" onclick="closeAll()">×</button></div>
+  <div class="penny"><div class="face">✨</div><div class="md" id="aiBody" style="flex:1"></div></div>
+  <div class="ai-meta" id="aiMeta"></div>
+</div>
+
+<!-- Penny chat -->
+<aside class="chat" id="chat">
+  <div class="chat-head"><div class="face">✨</div><div><b>Penny</b><small id="chatSub">AI money coach · SUSE AI</small></div><button class="x" onclick="closeAll()">×</button></div>
+  <div class="msgs" id="msgs"></div>
+  <div class="chat-foot">
+    <form id="chatForm"><input class="in" id="chatIn" placeholder="Ask about your money…" maxlength="1000" autocomplete="off"><button class="btn">Send</button></form>
+  </div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const eur = (c, sign) => (sign && c > 0 ? "+" : c < 0 ? "−" : "") + "€" + (Math.abs(c) / 100).toLocaleString("en-IE", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const eur0 = c => "€" + Math.round(c / 100).toLocaleString("en-IE");
+const ICON = {Housing: "🏠", Bills: "💡", Subscriptions: "📺", Health: "💪", Income: "💰", Coffee: "☕", Groceries: "🛒",
+  "Eating out": "🍜", Transport: "🚆", Shopping: "🛍️", Entertainment: "🎬", Transfers: "🔁"};
+const PALETTE = ["#4f46e5", "#14b8a6", "#f59e0b", "#ec4899", "#0ea5e9", "#84cc16", "#a855f7", "#ef4444", "#64748b"];
+const S = {token: null, user: null, ov: null, page: "home", chat: [], busy: false, ins: null, emoji: "🎯"};
+try { S.token = localStorage.getItem("kb_token"); } catch {}
+
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 3200);
+}
+
+async function api(path, method = "GET", body) {
+  const r = await fetch("/api/" + path, {method, headers: {"Content-Type": "application/json", ...(S.token ? {Authorization: "Bearer " + S.token} : {})},
+    body: body === undefined ? undefined : JSON.stringify(body)});
+  const data = await r.json().catch(() => ({error: "unexpected response"}));
+  if (r.status === 401 && S.token && !path.startsWith("users/login")) { signOut(true); }
+  return {status: r.status, ok: r.ok, data};
+}
+
+// ---------------------------------------------------------------- auth
+let authMode = "register";
+document.querySelectorAll("[data-t]").forEach(b => b.onclick = () => {
+  authMode = b.dataset.t;
+  document.querySelectorAll("[data-t]").forEach(x => x.classList.toggle("on", x === b));
+  $("#nameRow").hidden = authMode !== "register";
+  $("#aGo").textContent = authMode === "register" ? "Open my account" : "Sign in";
+  $("#aHint").hidden = authMode !== "register";
+  $("#aPw").autocomplete = authMode === "register" ? "new-password" : "current-password";
+  $("#aErr").textContent = "";
+});
+$("#authForm").onsubmit = async e => {
+  e.preventDefault();
+  const btn = $("#aGo"); btn.disabled = true; $("#aErr").textContent = "";
+  const body = {email: $("#aEmail").value, password: $("#aPw").value};
+  if (authMode === "register") body.name = $("#aName").value;
+  const r = await api("users/" + authMode, "POST", body);
+  btn.disabled = false;
+  if (!r.ok) return $("#aErr").textContent = r.data.error || "something went wrong";
+  setSession(r.data);
+  $("#aPw").value = "";
+  if (authMode === "register") toast("Welcome to KubeBank! 🎉 Your accounts are ready.");
+  route();
+};
+function setSession(d) {
+  S.token = d.token; S.user = d.user;
+  try { localStorage.setItem("kb_token", d.token); } catch {}
+}
+function signOut(expired) {
+  S.token = S.user = S.ov = null; S.chat = [];
+  try { localStorage.removeItem("kb_token"); } catch {}
+  closeAll(); route();
+  if (expired === true) toast("Your session ended, please sign in again.");
+}
+
+// ---------------------------------------------------------------- routing
+function go(p) { location.hash = p; }
+window.onhashchange = () => route();
+async function route() {
+  const signedIn = !!S.token;
+  $("#auth").hidden = signedIn;
+  ["nav", "askBtn", "avatar", "fab"].forEach(id => $("#" + id).hidden = !signedIn);
+  document.querySelectorAll("[id^=page-]").forEach(s => s.hidden = true);
+  if (!signedIn) return;
+  if (!S.user) { const r = await api("users/me"); if (!r.ok) return; setSession(r.data); }
+  $("#avatar").textContent = S.user.name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  $("#avatar").title = `${S.user.name} · sign out`;
+  S.page = ["home", "activity", "insights", "goals"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "home";
+  document.querySelectorAll("nav a").forEach(a => a.classList.toggle("on", a.dataset.p === S.page));
+  $("#page-" + S.page).hidden = false;
+  await loadOverview();
+  if (S.page === "home") renderHome();
+  if (S.page === "activity") loadActivity();
+  if (S.page === "insights") loadInsights();
+  if (S.page === "goals") renderGoals();
+}
+async function loadOverview() {
+  const r = await api("accounts/overview");
+  if (r.ok) S.ov = r.data; else toast(r.data.error || "couldn't load your accounts");
+}
+async function refresh() { await loadOverview(); route(); }
+
+// ---------------------------------------------------------------- shared bits
+function txRow(t, opts = {}) {
+  const dec = t.status === "declined";
+  return `<div class="tx"><div class="ic">${ICON[t.category] || "💸"}</div>
+    <div class="nm"><b>${esc(t.merchant)}</b><small>${esc(t.category)} · ${esc(t.account)}${t.note ? " · " + esc(t.note) : ""}
+      ${opts.date ? " · " + new Date(t.created * 1000).toLocaleDateString("en-IE", {day: "numeric", month: "short"}) : ""}</small></div>
+    ${dec ? '<span class="tag declined">declined</span>' : ""}
+    <div class="amt num ${dec ? "dec" : t.amount_cents > 0 ? "pos" : ""}">${eur(t.amount_cents, true)}</div>
+    <button class="sparkle" title="Ask Penny about this payment" onclick="askAI('txn','${t.id}','About this payment')">✨</button></div>`;
+}
+function donut(byCat, size = 150) {
+  const entries = Object.entries(byCat), total = entries.reduce((a, [, v]) => a + v, 0) || 1;
+  const r = 52, C = 2 * Math.PI * r; let off = 0;
+  const arcs = entries.map(([k, v], i) => {
+    const len = v / total * C, s = `<circle r="${r}" cx="70" cy="70" fill="none" stroke="${PALETTE[i % PALETTE.length]}" stroke-width="20"
+      stroke-dasharray="${Math.max(len - 2, 0.1)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"><title>${esc(k)}: ${eur(v)}</title></circle>`;
+    off += len; return s;
+  }).join("");
+  return `<div class="donut-wrap"><svg viewBox="0 0 140 140" width="${size}" height="${size}" role="img" aria-label="Spending by category">
+      <circle r="${r}" cx="70" cy="70" fill="none" stroke="var(--soft)" stroke-width="20"/>${arcs}
+      <text x="70" y="66" text-anchor="middle" font-size="11" fill="var(--muted)">spent</text>
+      <text x="70" y="84" text-anchor="middle" font-size="17" font-weight="800" fill="var(--ink)">${eur0(total)}</text></svg>
+    <div class="donut-legend">${entries.slice(0, 7).map(([k, v], i) => `<div><span><i style="background:${PALETTE[i % PALETTE.length]}"></i>${esc(k)}</span><b class="num">${eur0(v)}</b></div>`).join("")}</div></div>`;
+}
+
+// ---------------------------------------------------------------- home
+function greeting() { const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"; }
+function renderHome() {
+  const o = S.ov; if (!o) return;
+  const card = o.card;
+  $("#page-home").innerHTML = `
+    <div class="hero">
+      <small>${greeting()}, ${esc(o.name.split(" ")[0])} 👋 · Total balance</small>
+      <div class="big num">${eur(o.total_cents).replace(/(\.\d\d)$/, "<span>$1</span>")}</div>
+      <small>across ${o.accounts.length} accounts · play money</small>
+      <div class="actions">
+        <button class="act" onclick="openMove('own')">⇄ Move money</button>
+        <button class="act" onclick="openMove('person')">↗ Pay someone</button>
+        <button class="act" onclick="openGoal()">🎯 New goal</button>
+        <button class="act" onclick="askAI('month',null,'Your month, explained')">✨ Explain my month</button>
+      </div>
+    </div>
+    ${o.held.map(t => `<div class="alert"><span style="font-size:24px">🛡️</span><div class="grow"><b>Payment on hold: ${eur(t.amount_cents)} to ${esc(t.payee)}</b>
+      <span class="small muted">Risk ${t.score ?? "?"}/100 · ${esc(t.reasons.join("; "))}</span></div>
+      <div class="row"><button class="btn sm ai" onclick="askAI('transfer','${t.id}','Why was this payment held?')">✨ Why?</button>
+      <button class="btn sm ghost" onclick="heldAction('${t.id}','cancel')">Cancel</button>
+      <button class="btn sm danger" onclick="heldAction('${t.id}','confirm')">It's me, send it</button></div></div>`).join("")}
+    <h2 class="t">Accounts</h2>
+    <div class="accts">${o.accounts.map(a => `<div class="panel acct" onclick="go('${a.kind === "goal" ? "goals" : "activity"}')">
+      <div class="top"><div class="em">${esc(a.emoji)}</div><span class="muted small">${a.iban ? esc(a.iban.slice(0, 4) + " •••• " + a.iban.slice(-4)) : "Goal"}</span></div>
+      <div class="muted small" style="margin-top:10px;font-weight:650">${esc(a.name)}</div>
+      <div class="bal num">${eur(a.balance_cents)}</div>
+      ${a.target_cents ? `<div class="prog"><i style="width:${Math.min(100, a.balance_cents / a.target_cents * 100)}%"></i></div>
+        <div class="muted small">${Math.round(a.balance_cents / a.target_cents * 100)}% of ${eur0(a.target_cents)}</div>` : ""}</div>`).join("")}</div>
+    <div class="cols">
+      <div><h2 class="t">Recent activity <button class="link" onclick="go('activity')">See all →</button></h2>
+        <div class="panel">${o.recent.map(t => txRow(t, {date: true})).join("") || '<p class="muted">No activity yet.</p>'}</div></div>
+      <div><h2 class="t">Your card</h2>
+        <div class="panel">
+          <div class="vcard ${card.frozen ? "frozen" : ""}"><div style="display:flex;justify-content:space-between;align-items:center"><b style="letter-spacing:1px">KUBEBANK</b><span>◆ debit</span></div>
+            <div class="chip"></div><div class="pan num">•••• •••• •••• ${esc(card.last4)}</div>
+            <div class="meta"><span>${esc(o.name)}</span><span>demo</span></div></div>
+          <div class="switch">❄️ Freeze card <button class="tog ${card.frozen ? "on" : ""}" aria-label="Freeze card" onclick="freeze(${!card.frozen})"></button></div>
+          <div class="row"><button class="btn sm ghost" onclick="purchase(false)">📲 Simulate tap-to-pay</button>
+            <button class="btn sm ghost" onclick="purchase(true)">🕵️ Simulate a dodgy purchase</button></div>
+        </div>
+        <h2 class="t">Spending this month</h2><div class="panel" id="homeDonut"><span class="muted">Loading…</span></div>
+      </div>
+    </div>`;
+  api("accounts/insights").then(r => { if (r.ok) { S.ins = r.data; const el = $("#homeDonut"); if (el) el.innerHTML = donut(r.data.this_month.by_category); } });
+}
+async function heldAction(id, action) {
+  const r = await api(`accounts/transfers/${id}/${action}`, "POST", {});
+  toast(r.ok ? (action === "confirm" ? `Sent ${eur(r.data.amount_cents)} to ${r.data.payee} ✅` : "Payment cancelled") : r.data.error);
+  refresh();
+}
+async function freeze(on) {
+  const r = await api("accounts/card/freeze", "POST", {frozen: on});
+  if (r.ok) { toast(on ? "Card frozen ❄️ New card payments will be declined." : "Card unfrozen 🔥"); refresh(); }
+}
+async function purchase(risky) {
+  const r = await api("accounts/card/purchase", "POST", {risky});
+  const d = r.data;
+  if (r.status === 201) toast(`✅ ${eur(d.amount_cents)} at ${d.merchant} approved`);
+  else if (d.status === "declined") toast(`⛔ ${eur(d.amount_cents)} at ${d.merchant} declined: ${d.reason}`);
+  else toast(d.error || "purchase failed");
+  refresh();
+}
+
+// ---------------------------------------------------------------- activity
+let qTimer;
+$("#q").oninput = () => { clearTimeout(qTimer); qTimer = setTimeout(loadActivity, 250); };
+$("#accFilter").onchange = () => loadActivity();
+async function loadActivity() {
+  const sel = $("#accFilter"), cur = sel.value;
+  sel.innerHTML = `<option value="">All accounts</option>` + S.ov.accounts.map(a => `<option value="${a.id}">${esc(a.emoji + " " + a.name)}</option>`).join("");
+  sel.value = cur;
+  const r = await api(`accounts/transactions?limit=200&account=${encodeURIComponent(sel.value)}&q=${encodeURIComponent($("#q").value)}`);
+  if (!r.ok) return;
+  let html = "", last = "";
+  for (const t of r.data.transactions) {
+    const d = new Date(t.created * 1000).toLocaleDateString("en-IE", {weekday: "short", day: "numeric", month: "long"});
+    if (d !== last) { html += `<div class="day">${d}</div>`; last = d; }
+    html += txRow(t);
+  }
+  $("#txList").innerHTML = html || '<p class="muted">Nothing matches.</p>';
+}
+
+// ---------------------------------------------------------------- insights
+async function loadInsights() {
+  const r = await api("accounts/insights"); if (!r.ok) return;
+  const d = S.ins = r.data, tm = d.this_month, lm = d.last_month, l30 = d.last_30_days;
+  const daysInLast = new Date(new Date().getFullYear(), new Date().getMonth(), 0).getDate();
+  const pace = lm.total ? (tm.total / tm.day) / (lm.total / daysInLast) - 1 : 0;
+  const saved = l30.income ? 1 - l30.total / l30.income : 0;
+  const max = Math.max(...l30.daily, 1), W = 600, H = 160, bw = W / 30;
+  const bars = l30.daily.map((v, i) => `<rect x="${i * bw + 2}" y="${H - 18 - v / max * (H - 30)}" width="${bw - 4}" height="${Math.max(v / max * (H - 30), 1)}" rx="3" fill="url(#g)"><title>${eur(v)}</title></rect>`).join("");
+  const cats = [...new Set([...Object.keys(tm.by_category), ...Object.keys(lm.by_category)])];
+  const cmax = Math.max(...cats.map(c => Math.max(tm.by_category[c] || 0, lm.by_category[c] || 0)), 1);
+  $("#page-insights").innerHTML = `
+    <h2 class="t">Insights <button class="btn ai sm" onclick="askAI('month',null,'Your month, explained')">✨ Explain my month</button></h2>
+    <div class="kpis">
+      <div class="panel kpi"><small>Spent this month</small><div class="v num">${eur0(tm.total)}</div>
+        <span class="delta ${pace > 0 ? "up" : "down"}">${pace > 0 ? "▲" : "▼"} ${Math.abs(Math.round(pace * 100))}% daily pace vs last month</span></div>
+      <div class="panel kpi"><small>Spent last month</small><div class="v num">${eur0(lm.total)}</div><span class="muted small">${Object.keys(lm.by_category).length} categories</span></div>
+      <div class="panel kpi"><small>Income · 30 days</small><div class="v num">${eur0(l30.income)}</div><span class="muted small">spent ${eur0(l30.total)}</span></div>
+      <div class="panel kpi"><small>Savings rate · 30 days</small><div class="v num">${Math.round(saved * 100)}%</div><span class="delta ${saved >= .2 ? "down" : "up"}">${saved >= .2 ? "Healthy 👍" : "Room to improve"}</span></div>
+    </div>
+    <h2 class="t">Daily spending · last 30 days <span class="muted small">excluding rent</span></h2>
+    <div class="panel chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily spending, last 30 days"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f46e5"/><stop offset="1" stop-color="#14b8a6"/></linearGradient></defs>
+      ${bars}<text x="0" y="${H - 2}" font-size="11" fill="var(--muted)">30 days ago</text><text x="${W}" y="${H - 2}" font-size="11" fill="var(--muted)" text-anchor="end">today</text></svg></div>
+    <div class="cols">
+      <div><h2 class="t">By category <span class="legend"><span><i style="background:var(--brand)"></i>this month</span><span><i style="background:var(--line)"></i>last month</span></span></h2>
+        <div class="panel">${cats.map(c => `<div class="catrow"><span>${ICON[c] || "💸"} ${esc(c)}</span>
+          <div class="bars"><i style="width:${(tm.by_category[c] || 0) / cmax * 100}%"></i><i class="prev" style="width:${(lm.by_category[c] || 0) / cmax * 100}%"></i></div>
+          <b class="num small">${eur0(tm.by_category[c] || 0)}</b></div>`).join("")}</div></div>
+      <div><h2 class="t">Top merchants · 30 days</h2>
+        <div class="panel">${l30.top_merchants.map(([m, v]) => `<div class="tx"><div class="nm"><b>${esc(m)}</b></div><div class="amt num">${eur(v)}</div></div>`).join("")}</div>
+        <h2 class="t">Recurring</h2><div class="panel small">${d.recurring.map(esc).join(" · ") || "None found"}</div></div>
+    </div>`;
+}
+
+// ---------------------------------------------------------------- goals
+function ring(p) {
+  const r = 36, C = 2 * Math.PI * r;
+  return `<svg class="ring" viewBox="0 0 86 86"><circle cx="43" cy="43" r="${r}" fill="none" stroke="var(--soft)" stroke-width="9"/>
+    <circle cx="43" cy="43" r="${r}" fill="none" stroke="url(#rg)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${C * Math.min(p, 1)} ${C}" transform="rotate(-90 43 43)"/>
+    <defs><linearGradient id="rg"><stop offset="0" stop-color="#4f46e5"/><stop offset="1" stop-color="#14b8a6"/></linearGradient></defs>
+    <text x="43" y="48" text-anchor="middle" font-size="15" font-weight="800" fill="var(--ink)">${Math.round(p * 100)}%</text></svg>`;
+}
+function renderGoals() {
+  const goals = S.ov.accounts.filter(a => a.kind === "goal");
+  $("#page-goals").innerHTML = `<h2 class="t">Savings goals</h2><div class="goals">
+    ${goals.map(g => `<div class="panel goal"><div class="head">${ring(g.balance_cents / g.target_cents)}<div>
+      <h3>${esc(g.emoji)} ${esc(g.name)}</h3><div class="num"><b>${eur(g.balance_cents)}</b> <span class="muted">of ${eur0(g.target_cents)}</span></div>
+      <div class="muted small">${g.balance_cents >= g.target_cents ? "🎉 Goal reached!" : eur(g.target_cents - g.balance_cents) + " to go"}</div></div></div>
+      <div class="row"><button class="btn sm" onclick="openMove('own','${g.id}')">+ Add money</button>
+      <button class="btn sm ai" onclick="askAI('goal','${g.id}','Plan for ${esc(g.name).replace(/'/g, "")}')">✨ Plan it</button>
+      <button class="btn sm ghost" onclick="closeGoal('${g.id}')">Close</button></div></div>`).join("")}
+    <div class="panel goal new" onclick="openGoal()">＋ New goal</div></div>`;
+}
+async function closeGoal(id) {
+  if (!confirm("Close this goal? Its balance goes back to your Everyday account.")) return;
+  const r = await api(`accounts/goals/${id}/close`, "POST", {});
+  toast(r.ok ? `Goal closed, ${eur(r.data.returned_cents)} returned` : r.data.error); refresh();
+}
+const EMOJIS = ["🎯", "🏝️", "💻", "🚗", "🏠", "🎓", "💍", "🎸", "🚲", "🧳"];
+function openGoal() {
+  $("#gEmojis").innerHTML = EMOJIS.map(e => `<button type="button" data-e="${e}" style="font-size:18px${e === S.emoji ? ";border-color:var(--brand)" : ""}">${e}</button>`).join("");
+  $("#gEmojis").querySelectorAll("button").forEach(b => b.onclick = () => { S.emoji = b.dataset.e; openGoal(); });
+  $("#gErr").textContent = ""; show("#goalModal"); $("#gName").focus();
+}
+$("#goalForm").onsubmit = async e => {
+  e.preventDefault();
+  const target = Math.round(parseFloat($("#gTarget").value.replace(",", ".")) * 100);
+  const r = await api("accounts/goals", "POST", {name: $("#gName").value, target_cents: target || 0, emoji: S.emoji});
+  if (!r.ok) return $("#gErr").textContent = r.data.error;
+  closeAll(); $("#gName").value = $("#gTarget").value = ""; toast("Goal created 🎯"); go("goals"); refresh();
+};
+
+// ---------------------------------------------------------------- move money
+let moveMode = "own";
+document.querySelectorAll("[data-m]").forEach(b => b.onclick = () => setMoveMode(b.dataset.m));
+function setMoveMode(m) {
+  moveMode = m;
+  document.querySelectorAll("[data-m]").forEach(x => x.classList.toggle("on", x.dataset.m === m));
+  $("#mOwn").hidden = m !== "own"; $("#mPerson").hidden = m === "own";
+  $("#mGo").textContent = m === "own" ? "Move" : "Send payment";
+}
+function openMove(mode, toId) {
+  const opts = S.ov.accounts.map(a => `<option value="${a.id}">${esc(a.emoji + " " + a.name)} · ${eur(a.balance_cents)}</option>`).join("");
+  $("#mFrom").innerHTML = opts; $("#mTo").innerHTML = opts;
+  const chk = S.ov.accounts.find(a => a.kind === "checking");
+  if (chk) $("#mFrom").value = chk.id;
+  $("#mTo").value = toId || (S.ov.accounts.find(a => a.kind === "savings") || {}).id;
+  $("#mErr").textContent = ""; setMoveMode(mode); show("#moveModal"); $("#mAmt").focus();
+}
+$("#moveForm").onsubmit = async e => {
+  e.preventDefault();
+  const amount = Math.round(parseFloat($("#mAmt").value.replace(",", ".")) * 100);
+  if (!(amount > 0)) return $("#mErr").textContent = "enter an amount";
+  const body = {from_account: $("#mFrom").value, amount_cents: amount, note: $("#mNote").value};
+  if (moveMode === "own") body.to_account = $("#mTo").value; else body.to_email = $("#mEmail").value;
+  $("#mGo").disabled = true;
+  const r = await api("accounts/transfers", "POST", body);
+  $("#mGo").disabled = false;
+  if (!r.ok) return $("#mErr").textContent = r.data.error;
+  closeAll(); $("#mAmt").value = $("#mNote").value = "";
+  if (r.data.status === "held") toast(`🛡️ Held for review: risk ${r.data.score ?? "?"}/100. Check it on Home.`);
+  else toast(`✅ ${eur(r.data.amount_cents)} ${r.data.payee ? "sent to " + r.data.payee : "moved"}`);
+  if (r.data.status === "held") go("home");
+  refresh();
+};
+
+// ---------------------------------------------------------------- Penny (SUSE AI)
+function md(text) {
+  const lines = esc(text).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>").split("\n");
+  let out = "", list = null;
+  for (const raw of lines) {
+    const l = raw.trim(), ul = l.match(/^[-*•]\s+(.*)/), ol = l.match(/^\d+[.)]\s+(.*)/), h = l.match(/^#{1,4}\s+(.*)/);
+    const want = ul ? "ul" : ol ? "ol" : null;
+    if (list && list !== want) { out += `</${list}>`; list = null; }
+    if (want) { if (!list) { out += `<${want}>`; list = want; } out += `<li>${(ul || ol)[1]}</li>`; }
+    else if (h) out += `<h4>${h[1]}</h4>`;
+    else if (l) out += `<p>${l}</p>`;
+  }
+  return out + (list ? `</${list}>` : "");
+}
+async function stream(body, el, meta) {
+  const t0 = Date.now();
+  el.innerHTML = `<span class="thinking">Penny is thinking on SUSE AI<span class="dots"></span> <span class="secs">0s</span></span>`;
+  const timer = setInterval(() => { const s = el.querySelector(".secs"); if (s) s.textContent = Math.round((Date.now() - t0) / 1000) + "s"; }, 1000);
+  let text = "", err = null;
+  try {
+    const r = await fetch("/api/advisor/ask", {method: "POST", headers: {"Content-Type": "application/json", Authorization: "Bearer " + S.token}, body: JSON.stringify(body)});
+    if (!r.ok) { err = (await r.json().catch(() => ({}))).error || `HTTP ${r.status}`; }
+    else {
+      const reader = r.body.getReader(), dec = new TextDecoder(); let buf = "";
+      for (;;) {
+        const {value, done} = await reader.read(); if (done) break;
+        buf += dec.decode(value, {stream: true});
+        let i; while ((i = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, i); buf = buf.slice(i + 1); if (!line.trim()) continue;
+          const ev = JSON.parse(line);
+          if (ev.c) { text += ev.c; el.innerHTML = md(text); el.closest(".msgs")?.scrollTo(0, 1e9); }
+          if (ev.error) err = ev.error;
+          if (ev.done && meta) meta(`Answered by ${ev.model} on SUSE AI in ${ev.secs}s · ${ev.used}/${ev.limit} questions today`);
+        }
+      }
+    }
+  } catch (e) { err = "connection lost: " + e.message; }
+  clearInterval(timer);
+  if (err) { el.innerHTML = `<p class="err">${esc(err)}</p>`; el.classList.add("err"); }
+  else if (!text) el.innerHTML = '<p class="muted">Penny had nothing to say. Try again?</p>';
+  return text;
+}
+async function askAI(mode, id, title) {
+  closeAll(); $("#aiTitle").textContent = "✨ " + title; $("#aiMeta").textContent = ""; show("#aiModal");
+  await stream({mode, id}, $("#aiBody"), m => $("#aiMeta").textContent = m);
+}
+const SUGGEST = ["How am I doing this month?", "Where could I cut back?", "Can I afford a €900 laptop?", "Summarise my subscriptions"];
+function openChat() {
+  show("#chat");
+  if (!S.chat.length && !$("#msgs").children.length) {
+    $("#msgs").innerHTML = `<div class="msg bot"><p>Hi ${esc(S.user.name.split(" ")[0])}! I'm Penny, your money coach. I run on SUSE AI right here in the cluster and can see your KubeBank accounts. Ask me anything 💬</p>
+      <div class="sugg">${SUGGEST.map(s => `<button type="button">${esc(s)}</button>`).join("")}</div></div>`;
+    $("#msgs").querySelectorAll(".sugg button").forEach(b => b.onclick = () => sendChat(b.textContent));
+  }
+  setTimeout(() => $("#chatIn").focus(), 200);
+}
+$("#chatForm").onsubmit = e => { e.preventDefault(); sendChat($("#chatIn").value); };
+async function sendChat(text) {
+  text = text.trim(); if (!text || S.busy) return;
+  S.busy = true; $("#chatIn").value = "";
+  S.chat.push({role: "user", content: text});
+  $("#msgs").insertAdjacentHTML("beforeend", `<div class="msg user">${esc(text)}</div><div class="msg bot md"></div>`);
+  const el = $("#msgs").lastElementChild; $("#msgs").scrollTo(0, 1e9);
+  const reply = await stream({mode: "chat", messages: S.chat}, el, m => $("#chatSub").textContent = m.replace(/^Answered by /, ""));
+  if (reply) S.chat.push({role: "assistant", content: reply}); else S.chat.pop();
+  S.busy = false;
+}
+
+// ---------------------------------------------------------------- overlays + status
+function show(sel) { $("#scrim").classList.add("on"); $(sel).classList.add("on"); }
+function closeAll() { document.querySelectorAll(".on.modal, .chat.on, .scrim.on").forEach(x => x.classList.remove("on")); }
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeAll(); });
+async function status() {
+  const [s, i] = await Promise.all([fetch("/api/status").then(r => r.json()).catch(() => null), fetch("/api/advisor/info").then(r => r.json()).catch(() => null)]);
+  if (!s) return $("#status").textContent = "Can't reach the bank right now.";
+  $("#status").innerHTML = `<div>${s.services.map(x => `<span class="svc"><i class="${x.ok ? "" : "bad"}"></i>${esc(x.name)}${x.ok ? ` <span class="num">${x.ms}ms</span>` : " down"}</span>`).join("")}</div>
+    <div style="margin-top:6px">Penny runs on SUSE AI${i && i.model ? ` · model <b>${esc(i.model)}</b> via ${esc(i.ollama)}` : ""}${s.platform ? ` · Running on ${esc(s.platform)}` : ""} · KubeBank is a demo: play money only.</div>`;
+}
+route(); status(); setInterval(status, 30000);
+</script>
+</body>
+</html>

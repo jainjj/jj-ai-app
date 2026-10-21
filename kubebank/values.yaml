@@ -1,0 +1,34 @@
+image: registry.suse.com/bci/python:3.13
+
+# Shown in the page footer as "Running on <platform>". Empty hides it.
+# Fleet sets it from the cluster annotation "kubebank/platform".
+platform: ""
+
+# SUSE AI's Ollama. If the model isn't there, Penny uses Ollama's first local model.
+ollama:
+  url: http://ollama.simple-chatbot-with-rag-system.svc.cluster.local:11434
+  model: gpt-oss:latest
+
+advisor:
+  dailyQuestions: 25     # per customer per day
+  maxConcurrent: 2       # simultaneous model calls (CPU inference is slow)
+
+ingress:
+  enabled: true
+  # Empty matches any hostname. Fleet sets it from the cluster label "kubebank/host".
+  host: ""
+  # Empty uses the cluster's default IngressClass.
+  className: ""
+
+# Volumes for the services that keep data (users and accounts each get their own).
+storage:
+  size: 1Gi
+  storageClass: ""       # empty uses the cluster default
+
+# The microservices. Stateful ones run one replica (SQLite on a volume).
+services:
+  web:      { replicas: 2 }
+  users:    { replicas: 1, persistent: true }
+  accounts: { replicas: 1, persistent: true }
+  fraud:    { replicas: 2 }
+  advisor:  { replicas: 1 }

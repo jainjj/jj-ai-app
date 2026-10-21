@@ -1,0 +1,6 @@
+apiVersion: v2
+name: kubebank
+description: KubeBank, a microservice demo bank (play money only) with fraud checks and Penny, an AI money coach on SUSE AI.
+type: application
+version: 0.1.0
+appVersion: "1.0"

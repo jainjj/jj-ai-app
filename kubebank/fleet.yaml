@@ -1,0 +1,18 @@
+# Fleet bundle for KubeBank. Which clusters get it is decided by the GitRepo's targets
+# (see rancher/kubebank-gitrepo.yaml); per-cluster settings come from cluster labels.
+defaultNamespace: kubebank
+
+helm:
+  releaseName: kubebank
+  # Adopt a release that was first installed by hand with helm.
+  takeOwnership: true
+  values:
+    # e.g. annotate the cluster  kubebank/platform="SUSE Rancher, SUSE RKE2, SUSE AI"
+    # (an annotation, because label values can't hold spaces).
+    platform: '${ get .ClusterAnnotations "kubebank/platform" | default "" }'
+    ingress:
+      # e.g. label the cluster  kubebank/host=kubebank.34.244.248.6.sslip.io
+      host: '${ get .ClusterLabels "kubebank/host" }'
+    ollama:
+      # e.g.  kubebank/model=qwen3  (label values can't hold ':'; Ollama reads it as qwen3:latest).
+      model: '${ get .ClusterLabels "kubebank/model" | default "gpt-oss:latest" }'

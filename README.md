@@ -1,16 +1,17 @@
 # SUSE AI apps for Rancher Fleet
 
-Two apps that run on the SUSE AI Ollama in your cluster, each packaged as a Helm chart plus
-`fleet.yaml` so Rancher Fleet can deploy it to any cluster you label. Neither needs an image
+Three apps that run on the SUSE AI Ollama in your cluster, each packaged as a Helm chart plus
+`fleet.yaml` so Rancher Fleet can deploy it to any cluster you label. None needs an image
 build: every service is a stdlib-only Python script on the stock SUSE BCI Python image.
 
 | App | What it is | Fleet path | Docs |
 |---|---|---|---|
 | **jj-ai** | Geeko's Cluster Arcade: roast your cluster, YAML roaster, haiku and more | `jj-ai` | below |
 | **KubeKart** | Microservice online shop with a Plus tier (demo payments) and Kiko, an AI shopping assistant | `kubekart` | [kubekart/README.md](kubekart/README.md) |
+| **KubeBank** | Microservice demo bank (play money) with fraud checks, goals, a virtual card and Penny, an AI money coach | `kubebank` | [kubebank/README.md](kubebank/README.md) |
 
 Register each with Fleet from `rancher/` (`gitrepo.yaml` for jj-ai, `kubekart-gitrepo.yaml`
-for KubeKart), then label the clusters that should run it.
+for KubeKart, `kubebank-gitrepo.yaml` for KubeBank), then label the clusters that should run it.
 
 ---
 
