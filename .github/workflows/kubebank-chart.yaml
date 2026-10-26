@@ -1,0 +1,56 @@
+# Publishes the KubeBank Helm chart when you push a tag like  kubebank-v0.2.0
+# (the tag must match `version` in kubebank/Chart.yaml):
+#   - to GitHub's OCI registry:  oci://ghcr.io/<owner>/charts/kubebank
+#   - as a .tgz on a GitHub release for the tag
+# Pull requests and pushes to main that touch the chart only lint and render it.
+name: kubebank-chart
+
+on:
+  push:
+    tags: ["kubebank-v*"]
+    branches: [main]
+    paths: ["kubebank/**", ".github/workflows/kubebank-chart.yaml"]
+  pull_request:
+    paths: ["kubebank/**", ".github/workflows/kubebank-chart.yaml"]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - run: helm lint --strict kubebank
+      - run: helm template kubebank kubebank > /dev/null
+      - name: Python services compile
+        run: python3 -m py_compile kubebank/files/*.py
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/kubebank-v')
+    needs: lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # GitHub release
+      packages: write   # ghcr.io
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Tag matches Chart.yaml version
+        run: |
+          chart=$(awk '/^version:/ {print $2}' kubebank/Chart.yaml)
+          [ "kubebank-v$chart" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME but Chart.yaml says $chart"; exit 1; }
+      - run: helm package kubebank -d dist
+      - name: Push to ghcr.io
+        run: |
+          owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
+          helm push dist/kubebank-*.tgz "oci://ghcr.io/$owner/charts"
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          gh release create "$GITHUB_REF_NAME" dist/kubebank-*.tgz --title "KubeBank chart ${GITHUB_REF_NAME#kubebank-v}" \
+            --notes "helm install kubebank oci://ghcr.io/$owner/charts/kubebank --version ${GITHUB_REF_NAME#kubebank-v} -n kubebank --create-namespace"
