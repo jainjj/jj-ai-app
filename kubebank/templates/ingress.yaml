@@ -5,9 +5,15 @@ kind: Ingress
 metadata:
   name: {{ .Release.Name }}
   labels: {{- include "kubebank.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- with .Values.ingress.className }}
   ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls: {{- toYaml . | nindent 4 }}
   {{- end }}
   rules:
     - {{- with .Values.ingress.host }}

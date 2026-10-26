@@ -1,10 +1,14 @@
+# Every service is a stdlib-only Python script mounted from a ConfigMap, so this stock image is all it needs.
 image: registry.suse.com/bci/python:3.13
+imagePullPolicy: IfNotPresent
 
 # Shown in the page footer as "Running on <platform>". Empty hides it.
 # Fleet sets it from the cluster annotation "kubebank/platform".
 platform: ""
 
-# SUSE AI's Ollama. If the model isn't there, Penny uses Ollama's first local model.
+# Penny talks to an Ollama API. The default is SUSE AI's. Any Ollama works; if the model
+# isn't there, Penny uses Ollama's first local model. Without Ollama the bank still works
+# and only Penny's answers fail.
 ollama:
   url: http://ollama.simple-chatbot-with-rag-system.svc.cluster.local:11434
   model: gpt-oss:latest
@@ -13,17 +17,35 @@ advisor:
   dailyQuestions: 25     # per customer per day
   maxConcurrent: 2       # simultaneous model calls (CPU inference is slow)
 
+# Signs sign-in tokens and service-to-service calls. By default the chart generates one on
+# install and keeps it across upgrades. With GitOps tools that render without cluster access
+# (Argo CD, helm template), create a Secret with key "bank-secret" and name it here instead.
+existingSecret: ""
+
 ingress:
   enabled: true
   # Empty matches any hostname. Fleet sets it from the cluster label "kubebank/host".
   host: ""
   # Empty uses the cluster's default IngressClass.
   className: ""
+  annotations: {}
+  # e.g. [{ secretName: kubebank-tls, hosts: [bank.example.com] }]
+  # (with cert-manager, add its cluster-issuer annotation above and it issues the certificate)
+  tls: []
 
 # Volumes for the services that keep data (users and accounts each get their own).
 storage:
   size: 1Gi
   storageClass: ""       # empty uses the cluster default
+
+# Applied to every service's container.
+resources:
+  requests: { cpu: 20m, memory: 48Mi }
+  limits: { cpu: 500m, memory: 192Mi }
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
 
 # The microservices. Stateful ones run one replica (SQLite on a volume).
 services:

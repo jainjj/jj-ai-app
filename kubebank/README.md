@@ -8,9 +8,36 @@ never leaves it.
 **Every account and euro is play money.** The bank never asks for card numbers, real bank
 details or anything else that would make it a real bank.
 
-Like the other apps in this repo, every service is a stdlib-only Python script on the stock
-`registry.suse.com/bci/python:3.13` image, mounted from a ConfigMap. There are no images to
-build, so the chart deploys as-is to any cluster.
+Every service is a stdlib-only Python script on the stock `registry.suse.com/bci/python:3.13`
+image, mounted from a ConfigMap. There are no images to build, so the chart deploys as-is to
+any cluster.
+
+## Install
+
+```sh
+helm install kubebank oci://ghcr.io/jainjj/charts/kubebank -n kubebank --create-namespace \
+  --set ingress.host=kubebank.<ingress-ip>.sslip.io
+```
+
+Then open the host you set, or skip the Ingress and use
+`kubectl -n kubebank port-forward svc/kubebank-web 8080:8080`. Check it with
+`helm test kubebank -n kubebank`.
+
+Common variations:
+
+```sh
+# Your own Ollama (any namespace or host) and model
+--set ollama.url=http://ollama.ollama.svc:11434 --set ollama.model=qwen2.5:3b
+# A specific ingress class, with TLS from cert-manager
+--set ingress.className=nginx \
+--set ingress.annotations."cert-manager\.io/cluster-issuer"=letsencrypt \
+--set 'ingress.tls[0].secretName=kubebank-tls' --set 'ingress.tls[0].hosts[0]=bank.example.com'
+# No Ingress at all
+--set ingress.enabled=false
+```
+
+Uninstalling keeps the generated signing secret (`kubebank-secret`), so a reinstall still accepts
+existing sign-ins. Delete the namespace to remove everything, including the data volumes.
 
 ## Architecture
 
@@ -65,12 +92,15 @@ milliseconds, and a CPU-only model takes minutes. The LLM is used afterwards to 
 - On the card, **Freeze** it, then **Simulate tap-to-pay** (declined). **Simulate a dodgy
   purchase** shows fraud checks declining an overseas crypto/gift-card merchant.
 
-## Requirements on each cluster
+## Requirements
 
-- SUSE AI's Ollama (default `ollama.simple-chatbot-with-rag-system.svc.cluster.local:11434`)
-  with at least one model. Penny prefers `gpt-oss:latest` and otherwise uses the first local model.
-- A default StorageClass for the two 1 Gi volumes (k3s ships `local-path`).
-- An ingress controller with a default IngressClass (k3s ships Traefik).
+- Kubernetes 1.25+.
+- An Ollama API for Penny. The default is SUSE AI's
+  (`ollama.simple-chatbot-with-rag-system.svc.cluster.local:11434`); set `ollama.url` for any other.
+  Penny prefers `gpt-oss:latest` and otherwise uses the first local model. Without Ollama the
+  bank works and only Penny's answers fail.
+- A default StorageClass for the two 1 Gi volumes, or set `storage.storageClass`.
+- An ingress controller, unless `ingress.enabled=false`.
 
 ## Deploy with Fleet
 
@@ -91,7 +121,7 @@ milliseconds, and a CPU-only model takes minutes. The LLM is used afterwards to 
 
 `fleet.yaml` sets `takeOwnership: true`, so Fleet can adopt a release first installed by hand.
 
-## Deploy without Fleet
+## Install from a checkout
 
 ```sh
 helm upgrade --install kubebank ./kubebank -n kubebank --create-namespace \
@@ -113,14 +143,22 @@ a CPU-only cluster.
 
 ## Settings (`values.yaml`)
 
-| Value | Default |
-|---|---|
-| `ollama.url` / `ollama.model` | SUSE AI's Ollama / `gpt-oss:latest` |
-| `advisor.dailyQuestions` | `25` per customer |
-| `advisor.maxConcurrent` | `2` simultaneous model calls |
-| `ingress.host` / `ingress.className` | any host / cluster default |
-| `storage.size` / `storage.storageClass` | `1Gi` / cluster default |
-| `services.<name>.replicas` | 2 for web and fraud, 1 for the rest |
+| Value | Default | |
+|---|---|---|
+| `ollama.url` / `ollama.model` | SUSE AI's Ollama / `gpt-oss:latest` | Penny's model endpoint |
+| `advisor.dailyQuestions` | `25` | per customer per day |
+| `advisor.maxConcurrent` | `2` | simultaneous model calls |
+| `ingress.enabled` | `true` | |
+| `ingress.host` | empty (any host) | |
+| `ingress.className` | empty (cluster default) | |
+| `ingress.annotations` / `ingress.tls` | none | e.g. cert-manager |
+| `existingSecret` | empty (generated) | a Secret with key `bank-secret`; use it with Argo CD or `helm template`, which can't keep a generated one |
+| `storage.size` / `storage.storageClass` | `1Gi` / cluster default | |
+| `resources` | 20m/48Mi requests, 500m/192Mi limits | per container |
+| `nodeSelector` / `tolerations` / `affinity` | none | |
+| `services.<name>.replicas` | 2 for web and fraud, 1 for the rest | users and accounts must stay at 1 (SQLite) |
+| `image` / `imagePullPolicy` | `registry.suse.com/bci/python:3.13` / `IfNotPresent` | |
+| `platform` | empty | footer text "Running on …" |
 
 ## Run it locally
 
@@ -132,3 +170,13 @@ at any Ollama:
 cd kubebank/files
 for s in web users accounts fraud advisor; do SERVICE_NAME=$s DATA_DIR=/tmp/kubebank OLLAMA_URL=http://localhost:11434 python3 $s.py & done
 ```
+
+## Publishing a new chart version
+
+1. Bump `version` in `Chart.yaml` (and `appVersion` if the app changed).
+2. Push a matching tag, e.g. `git tag kubebank-v0.2.0 && git push origin kubebank-v0.2.0`.
+
+The `kubebank-chart` GitHub Actions workflow lints the chart, pushes it to
+`oci://ghcr.io/<owner>/charts/kubebank` and attaches the `.tgz` to a GitHub release. The first
+time, make the `charts/kubebank` package public in GitHub (**Packages → kubebank → Package
+settings → Change visibility**) so people can pull it without signing in.

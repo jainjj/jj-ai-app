@@ -1,0 +1,38 @@
+# helm test: every microservice reports healthy through the web gateway.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .Release.Name }}-test-status
+  labels: {{- include "kubebank.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: status
+      image: {{ .Values.image }}
+      imagePullPolicy: {{ .Values.imagePullPolicy }}
+      command:
+        - python3
+        - -c
+        - |
+          import json, sys, urllib.request
+          s = json.load(urllib.request.urlopen("http://{{ .Release.Name }}-web:8080/api/status", timeout=20))
+          for svc in s["services"]:
+              print(("ok  " if svc["ok"] else "DOWN"), svc["name"])
+          sys.exit(0 if s["ok"] else 1)
+      resources:
+        requests: { cpu: 10m, memory: 24Mi }
+        limits: { cpu: 200m, memory: 64Mi }
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]

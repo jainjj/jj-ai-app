@@ -71,6 +71,7 @@ spec:
       containers:
         - name: {{ $name }}
           image: {{ $root.Values.image }}
+          imagePullPolicy: {{ $root.Values.imagePullPolicy }}
           command: ["python3", "-u", "/app/{{ $name }}.py"]
           env:
             - { name: SERVICE_NAME, value: {{ $name | quote }} }
@@ -80,7 +81,7 @@ spec:
             - name: BANK_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ $root.Release.Name }}-secret
+                  name: {{ $root.Values.existingSecret | default (printf "%s-secret" $root.Release.Name) }}
                   key: bank-secret
             {{- range $other, $_ := $root.Values.services }}
             - { name: {{ upper $other }}_URL, value: "http://{{ $root.Release.Name }}-{{ $other }}:8080" }
@@ -102,9 +103,7 @@ spec:
           livenessProbe:
             httpGet: { path: /healthz, port: http }
             periodSeconds: 20
-          resources:
-            requests: { cpu: 20m, memory: 48Mi }
-            limits: { cpu: 500m, memory: 192Mi }
+          resources: {{- toYaml $root.Values.resources | nindent 12 }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -113,6 +112,15 @@ spec:
           volumeMounts:
             - { name: code, mountPath: /app, readOnly: true }
             - { name: data, mountPath: /data }
+      {{- with $root.Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $root.Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $root.Values.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
       volumes:
         - name: code
           configMap:

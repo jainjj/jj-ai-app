@@ -1,6 +1,29 @@
 apiVersion: v2
 name: kubebank
-description: KubeBank, a microservice demo bank (play money only) with fraud checks and Penny, an AI money coach on SUSE AI.
+description: >-
+  KubeBank, a microservice demo bank (play money only) with real-time fraud checks, savings goals,
+  a virtual card and Penny, an AI money coach that runs on an in-cluster Ollama such as SUSE AI.
 type: application
-version: 0.1.0
+version: 0.2.0
 appVersion: "1.0"
+kubeVersion: ">=1.25.0-0"
+home: https://github.com/jainjj/jj-ai-app/tree/main/kubebank
+sources:
+  - https://github.com/jainjj/jj-ai-app
+icon: https://raw.githubusercontent.com/jainjj/jj-ai-app/main/kubebank/icon.svg
+keywords:
+  - demo
+  - banking
+  - microservices
+  - ai
+  - llm
+  - ollama
+  - suse-ai
+maintainers:
+  - name: jainjj
+    url: https://github.com/jainjj
+annotations:
+  artifacthub.io/category: ai-machine-learning
+  artifacthub.io/images: |
+    - name: python
+      image: registry.suse.com/bci/python:3.13

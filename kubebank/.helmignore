@@ -1,5 +1,5 @@
 fleet.yaml
+icon.svg
 .git/
 __pycache__/
 *.pyc
-README.md
